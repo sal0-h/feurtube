@@ -29,22 +29,6 @@
         <div class="actions"><a class="button primary" href="guide.html">Build FeurTube</a><a class="button" href="#releases">Source releases</a></div>
         <p class="small">Free, open-source patches. You supply the YouTube APK.</p>
       </div>
-      <div class="comparison" role="group" aria-label="Illustrated comparison of the original interface and FeurTube">
-        <input class="compare-radio" type="radio" name="preview" id="preview-original">
-        <input class="compare-radio" type="radio" name="preview" id="preview-feur" checked>
-        <div class="compare-switch"><label for="preview-original">Original</label><label for="preview-feur">FeurTube</label></div>
-        <div class="phone" aria-hidden="true"><div class="phone-screen">
-          <div class="phone-status"><span>9:41</span><span>● ▰</span></div>
-          <div class="phone-top"><span><img src="assets/icon.svg" width="22" height="22" alt="">FeurTube</span><i class="search-icon"></i></div>
-          <div class="mock-chips"><span>All</span><span>Science</span><span>Music</span><span>Recently uploaded</span></div>
-          <div class="mock-thumb"><img src="assets/orbit.svg" width="640" height="360" alt=""><span class="duration">18:42</span></div>
-          <div class="mock-title"><i class="mock-avatar"></i><div><strong>A closer look at the Moon</strong><small>Space notes · 2 days ago</small></div></div>
-          <div class="shorts-shelf"><strong>Shorts</strong><div class="short-tiles"><span></span><span></span><span></span></div></div>
-          <div class="extra-video"><img src="assets/coast.svg" width="320" height="180" alt=""><div><strong>A quiet walk along the coast</strong><small>54 minutes</small></div></div>
-          <div class="mock-nav"><span><i class="nav-symbol"></i>Home</span><span class="shorts-nav"><i class="nav-symbol"></i>Shorts</span><span><i class="nav-symbol"></i>Subscriptions</span><span><i class="nav-symbol circle"></i>You</span></div>
-        </div></div>
-        <p>Interface illustration. Toggle to compare Shorts visibility.</p>
-      </div>
     </section>
     <section class="section" id="changes"><div class="wrap">
       <div class="section-head"><h2>Keep the videos.<br>Hide the Shorts.</h2><p>FeurTube patches the native Android app. The changes focus on Shorts surfaces and how their links open.</p></div>
@@ -52,7 +36,7 @@
         <div><h3>Keep using</h3><ul class="feature-list"><li>Regular videos and the familiar player</li><li>Search, subscriptions and playlists</li><li><div>Premium background playback<small>Confirmed on the first test device</small></div></li><li><div>Native offline downloads<small>Confirmed with an existing Premium account</small></div></li></ul></div>
         <div><h3>Hidden by default</h3><ul class="feature-list hidden-list"><li>The Shorts navigation tab</li><li>Shorts shelves in feeds and search</li><li>The Shorts launcher shortcut</li><li>Resuming the Shorts player on startup</li></ul></div>
       </div>
-      <p class="comparison-note">Initial testing used a Samsung S23 Ultra on Android 16. Other devices, detailed shelf coverage and full Premium compatibility are still being tested.</p>
+      <p class="testing-note">Initial testing used a Samsung S23 Ultra on Android 16. Other devices, detailed shelf coverage and full Premium compatibility are still being tested.</p>
     </div></section>
     <section class="section"><div class="wrap shared-link">
       <div><h2>Someone sent you a Short?</h2><p>Watch that video in the regular player. A shared link can stay a single video instead of opening the Shorts feed.</p><a href="guide.html#links">Set up YouTube links</a></div>
@@ -65,11 +49,11 @@
     </div></section>
     <section class="section" id="faq"><div class="wrap"><div class="section-head"><h2>A few questions</h2></div><div class="faq">
       <details><summary>What is FeurTube?</summary><p>An open-source patch project for Android YouTube. It uses Morphe and RVX patches, with a small FeurTube policy that hides Shorts by default and routes shared Shorts to the regular player.</p></details>
-      <details><summary>Is there an APK I can download?</summary><p>There is no public prepatched APK. Use the local build guide with a supported YouTube APK. Read about <a href="distribution.html">source releases and distribution</a>.</p></details>
+      <details><summary>Is there an APK I can download?</summary><p>There is no public prepatched APK. Use the local build guide with a supported YouTube APK.</p></details>
       <details><summary>Will my Premium subscription still work?</summary><p>Background playback and native offline downloads worked with Premium on the first test device. That does not establish compatibility with every Premium feature. PiP, casting, enhanced bitrate and other features still need broader testing.</p></details>
       <details><summary>What is GmsCore, and why is it needed?</summary><p>ReVanced GmsCore is a microG fork that supplies Google-service compatibility to the modified app without root. It runs beside your existing Google Play Services and participates in sign-in and token handling. Read the <a href="guide.html#trust">trust notes</a> before signing in.</p></details>
       <details><summary>Can I keep the official YouTube app?</summary><p>Yes. FeurTube uses a separate package, app.feurtube.android. It can be installed alongside stock YouTube. Set supported-link preferences to choose which app opens shared YouTube links.</p></details>
-      <details><summary>Is this an official YouTube project?</summary><p>No. FeurTube is independent of Google and YouTube. Modified apps may violate YouTube’s terms, and account or service access can be restricted. Open source and local builds do not guarantee safety or legal clearance. See the <a href="distribution.html">legal considerations</a>.</p></details>
+      <details><summary>Is this an official YouTube project?</summary><p>No. FeurTube is independent of Google and YouTube.</p></details>
       <details><summary>Where do I report a problem?</summary><p>Open a <a href="https://github.com/sal0-h/feurtube/issues">GitHub issue</a> with the YouTube version, Android version and steps to reproduce. Remove account details and tokens from logs before sharing them.</p></details>
     </div></div></section>
   </main>

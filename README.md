@@ -6,7 +6,7 @@ Uses [anddea's RVX patches](https://github.com/anddea/revanced-patches) and [Mor
 
 Experimental. Tested on a Samsung S23 Ultra running Android 16 with YouTube 21.39.525: Shorts hiding, shared Shorts in the regular player, Premium background playback, native offline downloads and default link routing. Other devices and full Premium compatibility are untested. No public APK release.
 
-[Website](https://sal0-h.github.io/feurtube/) · [Setup guide](https://sal0-h.github.io/feurtube/guide.html) · [Releases and legal considerations](https://sal0-h.github.io/feurtube/distribution.html)
+[Website](https://sal0-h.github.io/feurtube/) · [Setup guide](https://sal0-h.github.io/feurtube/guide.html)
 
 ## Build
 
