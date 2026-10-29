@@ -1,6 +1,6 @@
 # Android validation
 
-No complete FeurTube APK has been tested yet. Host tests passed on 2026-10-29: runtime policy/defaults, released RVX DEX mutation and serialization, Morphe bundle loading, dependency checksum rejection, input-version rejection and patch selection.
+No complete FeurTube APK has been tested yet. [Host tests passed in CI on 2026-10-29](https://github.com/sal0-h/feurtube/actions/runs/40965300379): runtime policy/defaults, released RVX DEX mutation and serialization, Morphe bundle loading, compile-only stub exclusion, upstream API signatures, dependency checksum rejection, input certificate/version rejection, resource overlay and patch selection. Consecutive local builds produced the same policy bundle hash.
 
 Test device available: Samsung S23 Ultra, Android 16 (API 36). Stock YouTube is 21.43.523, outside the pinned compatibility list. No device identifier or account data belongs in this file.
 
