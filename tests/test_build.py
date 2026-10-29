@@ -2,6 +2,7 @@
 import importlib.machinery
 import importlib.util
 import os
+import json
 from pathlib import Path
 import tempfile
 from types import SimpleNamespace
@@ -16,6 +17,19 @@ loader.exec_module(ft)
 
 
 class BuildTests(unittest.TestCase):
+    def test_actual_report_format_lists_selected_roots(self):
+        report = json.loads((ft.ROOT / "tests/fixtures/patch-report.json").read_text())
+        ft.validate_report(report)
+        report["failedPatches"] = [{"name": "FeurTube policy", "error": "test"}]
+        with self.assertRaises(ValueError):
+            ft.validate_report(report)
+
+    def test_report_with_failed_rebuild_is_rejected(self):
+        report = json.loads((ft.ROOT / "tests/fixtures/patch-report.json").read_text())
+        report["stepResults"][-1]["success"] = False
+        with self.assertRaises(ValueError):
+            ft.validate_report(report)
+
     def test_patch_selection(self):
         with patch.dict(os.environ, {"JAVA_HOME": "/usr"}):
             args = list(map(str, ft.patch_arguments("cli", "upstream", "policy", "in.apk", "out.apk", "report", "scratch")))

@@ -202,6 +202,17 @@ def patch_arguments(cli, upstream, bundle, apk, unsigned, report, scratch):
             "-o", unsigned, "-r", report, "-t", scratch, apk]
 
 
+def validate_report(result):
+    # Morphe reports selected roots, not the dependencies they execute internally.
+    required = {"FeurTube policy", "GmsCore support", "Hide shortcuts", "Spoof video streams",
+                "Custom branding for YouTube", "Settings for YouTube"}
+    if (result.get("success") is not True or result.get("failedPatches") != []
+            or not required.issubset(result.get("appliedPatches", []))
+            or not result.get("stepResults")
+            or any(step.get("success") is not True for step in result["stepResults"])):
+        raise ValueError("Incomplete or failed patch report")
+
+
 def patch(args):
     apk = args.apk.resolve()
     version = validate_input(apk)
@@ -225,10 +236,9 @@ def patch(args):
     with (attempt / "patch.log").open("w") as log:
         run(command, stdout=log, stderr=subprocess.STDOUT)
     result = json.loads(report.read_text())
-    required = {"FeurTube policy", "Shorts components", "Navigation bar components",
-                "Disable resuming Shorts on startup", "GmsCore support", "Hide shortcuts"}
-    if result.get("success") is not True or result.get("failedPatches") or not required.issubset(result.get("appliedPatches", [])):
-        raise ValueError(f"Incomplete patch report: {report}")
+    validate_report(result)
+    run([java_tool("java"), "-cp", os.pathsep.join(map(str, [cli, bundle])),
+         "app.feurtube.patches.VerifyPatchedApk", unsigned])
     package, patched_version = apk_metadata(unsigned)
     if package != PACKAGE or patched_version != version:
         raise ValueError("Output identity does not match FeurTube and the input version")

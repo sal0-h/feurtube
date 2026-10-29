@@ -1,0 +1,16 @@
+{
+  "success": true,
+  "appliedPatches": [
+    "FeurTube policy",
+    "GmsCore support",
+    "Hide shortcuts",
+    "Spoof video streams",
+    "Custom branding for YouTube",
+    "Settings for YouTube"
+  ],
+  "failedPatches": [],
+  "stepResults": [
+    {"step": "PATCHING", "success": true},
+    {"step": "REBUILDING", "success": true}
+  ]
+}
