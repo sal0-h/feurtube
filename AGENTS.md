@@ -8,4 +8,5 @@ Read `docs/HANDOFF.md` before continuing. Keep it current when stopping or handi
 - The combined desktop bundle retains RVX's `Patcher-Version: 1.7.0` behavior even though the pinned CLI exposes API 2.0.1. Changing the manifest to 2.x changes fingerprint matching and resource decoding for RVX too.
 - Preserve upstream notices and visible credits. No proprietary APKs, signing keys, tokens, device identifiers, account screenshots or raw phone logs in Git or GitHub artifacts.
 - Device tests use the separate package `app.feurtube.android`. Let the user handle authentication and account actions. Record only sanitized outcomes. Ask before interrupting personal playback or changing phone-wide settings.
+- Check the focused package before each UI capture. Capture only FeurTube or its relevant non-authentication setup prompt. Never capture another foreground app or a login form. UI dumps can time out while leaving an old file behind; check capture success before using one.
 - Keep docs factual and short. Label untested behavior. Do not add badges, release claims, broad feature patches or a website before the core app works.

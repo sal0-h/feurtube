@@ -2,7 +2,7 @@
 
 YouTube with Shorts hidden by default. Open a shared Short as one video in the regular player, without the swipe feed.
 
-**Experimental.** The policy bundle builds and passes host tests against a pinned RVX release. A complete YouTube APK and Premium behavior have not yet been validated on Android. There is no release APK.
+**Experimental.** A YouTube 21.39.525 build has been patched, signed and installed alongside stock YouTube on a test phone. Startup and feature testing are in progress. Premium behavior remains unverified. There is no public release APK.
 
 FeurTube patches the Android app using [Morphe](https://github.com/MorpheApp/morphe-desktop) and [anddea's RVX patches](https://github.com/anddea/revanced-patches). [FeurStagram](https://github.com/jean-voila/FeurStagram) inspired the scope: useful features stay accessible; distracting surfaces start disabled.
 
@@ -26,7 +26,7 @@ Supply a complete, unmodified YouTube APK yourself:
 | YouTube version | Upstream Android floor | FeurTube status |
 | --- | --- | --- |
 | 21.13.164 | Android 9 | Host tests only |
-| 21.39.525 | Android 12L | Experimental; host tests only |
+| 21.39.525 | Android 12L | Experimental; build and install verified; feature tests pending |
 
 APKM, XAPK, APKS and split APK inputs are not supported. Other versions and unrecognized signing certificates are rejected. Accepted Google certificate fingerprints are pinned in the lock file. An older supported version remains an older client even though FeurTube does not select the app-version spoof patch.
 
