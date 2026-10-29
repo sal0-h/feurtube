@@ -1,0 +1,289 @@
+#!/usr/bin/env python3
+"""Build the FeurTube policy bundle and patch a user-supplied YouTube APK."""
+import argparse
+import hashlib
+import json
+import os
+from pathlib import Path
+import re
+import shutil
+import subprocess
+import sys
+import urllib.request
+import zipfile
+
+ROOT = Path(__file__).resolve().parent
+CACHE = ROOT / ".cache"
+BUILD = ROOT / "build"
+LOCK = json.loads((ROOT / "upstream.lock.json").read_text())
+PACKAGE = "app.feurtube.android"
+
+
+def digest(path):
+    with path.open("rb") as stream:
+        return hashlib.file_digest(stream, "sha256").hexdigest()
+
+
+def run(args, **kwargs):
+    env = dict(kwargs.pop("env", os.environ))
+    if env.get("JAVA_HOME"):
+        env["PATH"] = str(Path(env["JAVA_HOME"]) / "bin") + os.pathsep + env.get("PATH", "")
+    return subprocess.run([str(x) for x in args], check=True, env=env, **kwargs)
+
+
+def java_tool(name):
+    home = os.environ.get("JAVA_HOME")
+    tool = str(Path(home) / "bin" / name) if home else shutil.which(name)
+    if not tool or not Path(tool).is_file():
+        raise ValueError(f"{name} missing; set JAVA_HOME to a JDK 21 installation")
+    return tool
+
+
+def sdk_tool(name):
+    sdk = os.environ.get("ANDROID_HOME") or os.environ.get("ANDROID_SDK_ROOT")
+    if not sdk:
+        raise ValueError("Set ANDROID_HOME to an Android SDK with build-tools 34.0.0+")
+    tool = Path(sdk) / "build-tools" / LOCK["android_build_tools"] / name
+    if not tool.is_file():
+        raise ValueError(f"{tool} missing; install SDK build-tools {LOCK['android_build_tools']}")
+    return tool
+
+
+def bootstrap():
+    CACHE.mkdir(exist_ok=True)
+    paths = []
+    for kind in ("cli", "patches"):
+        item = LOCK[kind]
+        path = CACHE / item["url"].rsplit("/", 1)[1]
+        if not path.exists():
+            print(f"Downloading {path.name}", flush=True)
+            partial = path.with_suffix(".part")
+            try:
+                with urllib.request.urlopen(item["url"], timeout=60) as response, partial.open("wb") as out:
+                    shutil.copyfileobj(response, out)
+                if digest(partial) != item["sha256"]:
+                    raise ValueError(f"Checksum mismatch: {path.name}")
+                partial.replace(path)
+            finally:
+                partial.unlink(missing_ok=True)
+        if digest(path) != item["sha256"]:
+            raise ValueError(f"Checksum mismatch: {path}. Remove it and run bootstrap again.")
+        paths.append(path)
+    return paths
+
+
+def archive(path, entries):
+    """Avoid timestamps and platform permissions in generated bundles."""
+    with zipfile.ZipFile(path, "w", compression=zipfile.ZIP_DEFLATED) as out:
+        for name, contents in sorted(entries.items()):
+            info = zipfile.ZipInfo(name, date_time=(1980, 1, 1, 0, 0, 0))
+            info.compress_type = zipfile.ZIP_DEFLATED
+            info.external_attr = 0o100644 << 16
+            out.writestr(info, contents)
+
+
+def compile_java(source, target, classpath=None, release=21):
+    target.mkdir(parents=True, exist_ok=True)
+    args = [java_tool("javac"), "--release", str(release), "-Xlint:-options", "-encoding", "UTF-8", "-d", target]
+    if classpath:
+        args += ["-cp", os.pathsep.join(str(p) for p in classpath)]
+    run(args + sorted(source.rglob("*.java")))
+
+
+def configure_resources(entries):
+    path = "youtube/settings/xml/revanced_prefs.xml"
+    pattern = (r'<app\.morphe\.extension\.shared\.settings\.preference\.CustomDialogListPreference\b'
+               r'[^>]*\bandroid:key="revanced_shorts_player_type"[^>]*/>')
+    replacement = (ROOT / "patches/resources/shorts-policy.xml").read_text().strip()
+    resource, count = re.subn(pattern, lambda _: replacement, entries[path].decode())
+    if count != 1:
+        raise ValueError(f"Expected one upstream Shorts player preference; found {count}")
+    entries[path] = resource.encode()
+
+
+def build():
+    cli, upstream = bootstrap()
+    BUILD.mkdir(exist_ok=True)
+    classes, extension, dex, stubs = (BUILD / name for name in ("classes", "extension", "dex", "stubs"))
+    for directory in (classes, extension, dex, stubs):
+        if directory.exists():
+            shutil.rmtree(directory)
+        directory.mkdir()
+    compile_java(ROOT / "tests/stubs", stubs, release=8)
+    compile_java(ROOT / "extension/src", extension, [stubs], release=8)
+    extension_jar = BUILD / "extension.jar"
+    archive(extension_jar, {str(p.relative_to(extension)): p.read_bytes()
+                            for p in extension.rglob("*.class")})
+    run([sdk_tool("d8"), "--min-api", "26", "--classpath", stubs, "--output", dex, extension_jar])
+    compile_java(ROOT / "patches/src", classes, [cli, upstream])
+    # Morphe isolates bundle class loaders. Put the dependency and its dependent
+    # policy in one desktop bundle so dependsOn() refers to the same patch objects.
+    with zipfile.ZipFile(upstream) as source:
+        entries = {name: source.read(name) for name in source.namelist()
+                   if not name.endswith("/") and name != "classes.dex"}
+    entries["upstream/RVX-MANIFEST.MF"] = entries.pop("META-INF/MANIFEST.MF")
+    entries["upstream/lock.json"] = (ROOT / "upstream.lock.json").read_bytes()
+    configure_resources(entries)
+    entries.update({str(p.relative_to(classes)): p.read_bytes() for p in classes.rglob("*.class")})
+    entries["extensions/feurtube.dex"] = (dex / "classes.dex").read_bytes()
+    for name in ("LICENSE", "NOTICE"):
+        entries[name] = (ROOT / name).read_bytes()
+    entries["META-INF/MANIFEST.MF"] = (
+        "Manifest-Version: 1.0\r\nName: FeurTube Patches\r\nVersion: 0.1.0\r\n"
+        "Description: Shorts removal policy for YouTube\r\n"
+        "Source: https://github.com/sal0-h/feurtube\r\n"
+        # Preserve RVX's 1.7 fingerprint/resource behavior. Declaring 2.0 changes
+        # fingerprint string matching for the unmodified upstream patches.
+        "License: GPL-3.0-only\r\nPatcher-Version: 1.7.0\r\n\r\n"
+    ).encode()
+    bundle = BUILD / "feurtube.mpp"
+    archive(bundle, entries)
+    print(f"Built {bundle} (sha256 {digest(bundle)})")
+    return cli, upstream, bundle
+
+
+def test():
+    cli, upstream, bundle = build()
+    compile_java(ROOT / "tests/java", BUILD / "tests",
+                 [cli, upstream, BUILD / "classes", BUILD / "extension", BUILD / "stubs"])
+    run([java_tool("java"), "-ea", "-cp",
+         os.pathsep.join(map(str, [BUILD / "tests", BUILD / "classes", BUILD / "extension", BUILD / "stubs", cli, upstream])),
+         "app.feurtube.tests.PolicyTest", upstream, BUILD / "test-mutated.dex", BUILD / "dex/classes.dex"])
+    # Exercise the actual loader as well as the Java tests.
+    run([java_tool("java"), "-jar", cli, "list-patches", "--patches", bundle,
+         "--out", BUILD / "patch-list.txt"])
+    if "FeurTube policy" not in (BUILD / "patch-list.txt").read_text():
+        raise ValueError("Morphe did not load FeurTube policy")
+    run([sys.executable, "-m", "unittest", "discover", "-s", "tests"], cwd=ROOT)
+
+
+def apk_metadata(apk):
+    result = run([sdk_tool("aapt2"), "dump", "badging", apk], capture_output=True, text=True)
+    header = result.stdout.splitlines()[0]
+    def attribute(name):
+        match = re.search(rf"\b{name}='([^']*)'", header)
+        if not match:
+            raise ValueError(f"APK has no {name}")
+        return match[1]
+    if " split='" in header:
+        raise ValueError("Split APK supplied; provide a complete standalone APK")
+    manifest = run([sdk_tool("aapt2"), "dump", "xmltree", apk, "--file", "AndroidManifest.xml"],
+                   capture_output=True, text=True).stdout
+    if re.search(r'E: uses-split\b|:requiredSplitTypes[^=]*="[^"]+"|:isSplitRequired[^=]*=\(type 0x12\)0xffffffff', manifest):
+        raise ValueError("APK requires missing splits; provide a complete standalone APK")
+    return attribute("name"), attribute("versionName")
+
+
+def validate_input(apk):
+    if apk.suffix.lower() != ".apk" or not apk.is_file():
+        raise ValueError("Supply a standalone YouTube .apk; split bundles are not supported yet")
+    package, version = apk_metadata(apk)
+    if package != LOCK["youtube"]["package"] or version not in LOCK["youtube"]["versions"]:
+        raise ValueError(f"Unsupported input: {package} {version}. See upstream.lock.json")
+    return version
+
+
+def verify_input_signature(apk):
+    result = run([sdk_tool("apksigner"), "verify", "--print-certs", apk], capture_output=True, text=True)
+    certificates = set(re.findall(r"^Signer .*?certificate SHA-256 digest: ([0-9a-f]{64})$", result.stdout, re.M))
+    if not certificates or not certificates.issubset(LOCK["youtube"]["certificate_sha256"]):
+        raise ValueError("Input APK does not have an accepted Google YouTube signing certificate")
+    return sorted(certificates)
+
+
+def patch_arguments(cli, upstream, bundle, apk, unsigned, report, scratch):
+    return [java_tool("java"), "-Xmx4g", "-jar", cli, "patch", "--exclusive", "--unsigned",
+            "--bytecode-mode=FULL", "-p", bundle,
+            "-e", "GmsCore support", "-O", f"packageNameYouTube={PACKAGE}",
+            "-e", "Settings for YouTube", "-O", "rvxSettingsLabel=FeurTube",
+            "-e", "Custom branding for YouTube", "-O", "customName=FeurTube",
+            "-e", "Hide shortcuts", "-e", "Spoof video streams",
+            "-e", "FeurTube policy",
+            "-o", unsigned, "-r", report, "-t", scratch, apk]
+
+
+def patch(args):
+    apk = args.apk.resolve()
+    version = validate_input(apk)
+    if version in LOCK["youtube"]["experimental"] and not args.experimental:
+        raise ValueError(f"YouTube {version} is experimental; pass --experimental to test it")
+    certificates = verify_input_signature(apk)
+    keystore = args.keystore.resolve()
+    if not keystore.is_file() or not os.environ.get("FEURTUBE_KEYSTORE_PASSWORD"):
+        raise ValueError("Run keygen first; set FEURTUBE_KEYSTORE_PASSWORD and supply --keystore if needed")
+    output = args.output.resolve()
+    if output == apk or output == keystore or output.exists():
+        raise ValueError("Output must be a new path, separate from the input and signing key")
+    cli, upstream, bundle = build()
+    # Keep each attempt's report and log, including failures.
+    import tempfile
+    attempt = Path(tempfile.mkdtemp(prefix="patch-", dir=BUILD))
+    report = attempt / "patch-report.json"
+    unsigned = attempt / "unsigned.apk"
+    command = patch_arguments(cli, upstream, bundle, apk, unsigned, report, attempt / "scratch")
+    print(f"Patching YouTube {version}; log: {attempt / 'patch.log'}", flush=True)
+    with (attempt / "patch.log").open("w") as log:
+        run(command, stdout=log, stderr=subprocess.STDOUT)
+    result = json.loads(report.read_text())
+    required = {"FeurTube policy", "Shorts components", "Navigation bar components",
+                "Disable resuming Shorts on startup", "GmsCore support", "Hide shortcuts"}
+    if result.get("success") is not True or result.get("failedPatches") or not required.issubset(result.get("appliedPatches", [])):
+        raise ValueError(f"Incomplete patch report: {report}")
+    package, patched_version = apk_metadata(unsigned)
+    if package != PACKAGE or patched_version != version:
+        raise ValueError("Output identity does not match FeurTube and the input version")
+    output.parent.mkdir(parents=True, exist_ok=True)
+    run([sdk_tool("apksigner"), "sign", "--ks", keystore, "--ks-key-alias", "feurtube",
+         "--ks-pass", "env:FEURTUBE_KEYSTORE_PASSWORD", "--key-pass", "env:FEURTUBE_KEYSTORE_PASSWORD",
+         "--v4-signing-enabled", "false", "--out", output, unsigned])
+    run([sdk_tool("apksigner"), "verify", "--verbose", "--print-certs", output])
+    receipt = {"input_sha256": digest(apk), "output_sha256": digest(output),
+               "input_certificate_sha256": certificates,
+               "youtube_version": version, "package": PACKAGE, "upstream": LOCK,
+               "policy_sha256": digest(bundle), "patch_report": str(report),
+               "android_tested": False}
+    output.with_suffix(".json").write_text(json.dumps(receipt, indent=2) + "\n")
+    print(f"Signed {output}. Android behavior still requires device testing.")
+
+
+def keygen(args):
+    if not os.environ.get("FEURTUBE_KEYSTORE_PASSWORD"):
+        raise ValueError("Set FEURTUBE_KEYSTORE_PASSWORD before generating a signing key")
+    key = args.keystore.resolve()
+    if key.exists():
+        raise ValueError(f"Refusing to replace signing key: {key}")
+    key.parent.mkdir(parents=True, exist_ok=True)
+    old_umask = os.umask(0o077)
+    try:
+        run([java_tool("keytool"), "-genkeypair", "-storetype", "PKCS12", "-keystore", key,
+             "-alias", "feurtube", "-keyalg", "RSA", "-keysize", "3072", "-validity", "10000",
+             "-dname", "CN=FeurTube local build", "-storepass:env", "FEURTUBE_KEYSTORE_PASSWORD"])
+    finally:
+        os.umask(old_umask)
+    print(f"Created {key}. Back it up; updates must use the same key.")
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    sub = parser.add_subparsers(dest="command", required=True)
+    for name in ("bootstrap", "build", "test"):
+        sub.add_parser(name)
+    for name in ("keygen", "patch"):
+        command = sub.add_parser(name)
+        command.add_argument("--keystore", type=Path, default=CACHE / "signing.p12")
+        if name == "patch":
+            command.add_argument("apk", type=Path)
+            command.add_argument("--output", type=Path, default=ROOT / "dist/feurtube.apk")
+            command.add_argument("--experimental", action="store_true")
+    args = parser.parse_args()
+    try:
+        {"bootstrap": bootstrap, "build": build, "test": test,
+         "keygen": lambda: keygen(args), "patch": lambda: patch(args)}[args.command]()
+    except (ValueError, OSError, subprocess.CalledProcessError) as error:
+        print(f"feurtube: {error}", file=sys.stderr)
+        return 1
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

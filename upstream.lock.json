@@ -1,0 +1,25 @@
+{
+  "android_build_tools": "34.0.0",
+  "patcher_api": "2.0.1",
+  "cli": {
+    "url": "https://github.com/MorpheApp/morphe-desktop/releases/download/v1.19.1/morphe-desktop-1.19.1-all.jar",
+    "sha256": "a51472252cd63b2eac635dbb5a154ff918bfc15268da89679feb3d760230c573",
+    "version": "1.19.1"
+  },
+  "patches": {
+    "url": "https://github.com/anddea/revanced-patches/releases/download/v4.4.0-dev.3/patches-4.4.0-dev.3.mpp",
+    "sha256": "04c02b35bd48e8160fbc30519113659242073c3958dee954f60b22bc582eae57",
+    "version": "4.4.0-dev.3",
+    "source": "https://github.com/anddea/revanced-patches",
+    "commit": "3de8b752ce00501cd847c0eacf463dd58cb97ed4"
+  },
+  "youtube": {
+    "package": "com.google.android.youtube",
+    "certificate_sha256": [
+      "3d7a1223019aa39d9ea0e3436ab7c0896bfb4fb679f4de5fe7c23f326c8f994a",
+      "5aad2bee6db95d17e05a08d7d1e64c10a1511879154483916b6ae6c7fd9cb0c6"
+    ],
+    "versions": ["21.13.164", "21.39.525"],
+    "experimental": ["21.39.525"]
+  }
+}

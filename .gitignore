@@ -1,0 +1,16 @@
+.cache/
+build/
+dist/
+__pycache__/
+*.pyc
+*.apk
+*.apkm
+*.apks
+*.xapk
+*.keystore
+*.jks
+*.bks
+*.p12
+*.idsig
+.env
+local.properties
