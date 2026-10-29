@@ -46,6 +46,8 @@ The result is `dist/feurtube.apk`, installed separately as `app.feurtube.android
 
 Non-root builds require [ReVanced GmsCore](https://github.com/ReVanced/GmsCore/releases) for sign-in. Install and authenticate it yourself. FeurTube does not request credentials. Settings appear under YouTube settings as **FeurTube**; Shorts removal is already enabled on a fresh install.
 
+To open shared YouTube links in FeurTube, go to Android **Settings → Apps → FeurTube → Set as default / Open by default**. Enable **Open supported links** and select `youtube.com`, `www.youtube.com`, `m.youtube.com` and `youtu.be`. If stock YouTube already owns those links, turn off its supported-link handling first. Removing stock YouTube alone does not assign its links to FeurTube. Android documents this [manual domain association](https://developer.android.com/training/app-links/verify-applinks#request-user-associate).
+
 ## Development
 
 Read [docs/IMPLEMENTATION.md](docs/IMPLEMENTATION.md) for the hooks and [docs/HANDOFF.md](docs/HANDOFF.md) for current work. Record Android results in [docs/TESTING.md](docs/TESTING.md). The bundle currently targets the desktop CLI; importing it into an Android patch manager is unsupported.
