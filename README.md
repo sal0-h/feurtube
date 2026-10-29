@@ -1,55 +1,41 @@
 # FeurTube
 
-YouTube with Shorts hidden by default. Open a shared Short as one video in the regular player, without the swipe feed.
+YouTube with Shorts hidden by default. Shared Shorts open in the regular video player.
 
-**Experimental.** The first tester reports background playback, native offline downloads and no visible Shorts on a Samsung S23 Ultra running Android 16. A direct Shorts link was also observed opening in the regular player. Other devices and the remaining Premium features are unverified. There is no public release APK.
+Uses [anddea's RVX patches](https://github.com/anddea/revanced-patches) and [Morphe](https://github.com/MorpheApp/morphe-desktop), with a small Java policy for defaults and navigation. Inspired by [FeurStagram](https://github.com/jean-voila/FeurStagram).
 
-FeurTube patches the Android app using [Morphe](https://github.com/MorpheApp/morphe-desktop) and [anddea's RVX patches](https://github.com/anddea/revanced-patches). [FeurStagram](https://github.com/jean-voila/FeurStagram) inspired the scope: useful features stay accessible; distracting surfaces start disabled.
-
-The default policy hides the Shorts navigation button and shelves in Home, Search, Subscriptions, channels, history and related videos. It disables Shorts resume on startup and removes the Shorts launcher shortcut. Shared Shorts use the regular player. Empty Shorts launches are consumed.
-
-Normal playback, accounts, subscriptions, history and Premium features are requirements. Background playback and native offline downloads passed the first user's tests. PiP, casting, enhanced bitrate and full Premium parity remain unverified. Stream spoofing starts **off** to try the stock playback client first. Non-root sign-in uses GmsCore and may still affect compatibility. Keep stock YouTube installed during testing.
+Experimental. Tested on a Samsung S23 Ultra running Android 16 with YouTube 21.39.525: Shorts hiding, shared Shorts in the regular player, Premium background playback, native offline downloads and default link routing. Other devices and full Premium compatibility are untested. No public APK release.
 
 ## Build
 
-Linux or macOS, Python 3.11+, JDK 21, and Android SDK build-tools **34.0.0** are required. Set `JAVA_HOME` and `ANDROID_HOME`. Install the SDK tools with `sdkmanager 'build-tools;34.0.0'` if needed.
+Requires Python 3.11+, JDK 21 and Android SDK build-tools **34.0.0** on Linux or macOS. Set `JAVA_HOME` and `ANDROID_HOME`.
+
+Supply a standalone, Google-signed YouTube APK: **21.13.164** (Android 9+) or **21.39.525** (Android 12L+, experimental). Split APKs and APKM/XAPK/APKS bundles are unsupported.
 
 ```sh
 ./feurtube bootstrap
 ./feurtube test
-```
 
-This verifies pinned downloads, compiles the Java extension and desktop patch, and produces `build/feurtube.mpp`. It uses prebuilt upstream patch code; it does not rebuild RVX or prove its binary matches its source. All release URLs, checksums and source revisions are in [upstream.lock.json](upstream.lock.json). The build needs no GitHub token.
-
-Supply a complete, unmodified YouTube APK yourself:
-
-| YouTube version | Upstream Android floor | FeurTube status |
-| --- | --- | --- |
-| 21.13.164 | Android 9 | Host tests only |
-| 21.39.525 | Android 12L | Experimental; background play, offline downloads and Shorts hiding user-tested on one device |
-
-APKM, XAPK, APKS and split APK inputs are not supported. Other versions and unrecognized signing certificates are rejected. Accepted Google certificate fingerprints are pinned in the lock file. An older supported version remains an older client even though FeurTube does not select the app-version spoof patch.
-
-Read a signing password from your terminal, then generate a persistent local key:
-
-```sh
 read -r -s FEURTUBE_KEYSTORE_PASSWORD
 export FEURTUBE_KEYSTORE_PASSWORD
 ./feurtube keygen
-./feurtube patch /path/to/youtube-21.13.164.apk
-# For 21.39.525, add --experimental.
+./feurtube patch /path/to/youtube-21.39.525.apk --experimental
 ```
 
-Back up `.cache/signing.p12` and its password. Updates require the same key. Use `--keystore /path/to/key.p12` for another key with alias `feurtube`. The tool refuses to overwrite an existing output; use `--output` for another destination.
+Output: `dist/feurtube.apk`, package `app.feurtube.android`. Logs and patch reports go under `build/patch-*`; a build receipt is written beside the APK. Use `--output` for another destination; existing files are not overwritten.
 
-The result is `dist/feurtube.apk`, installed separately as `app.feurtube.android`. Each attempt keeps a patch report and log under `build/patch-*`; a successful signed build also writes a JSON receipt beside the APK. These contain build evidence, not an Android test result.
+Back up `.cache/signing.p12` and its password privately. Updates need the same key. To use another key with alias `feurtube`, pass `--keystore /path/to/key.p12`.
 
-Non-root builds require [ReVanced GmsCore](https://github.com/ReVanced/GmsCore/releases) for sign-in. Install and authenticate it yourself. FeurTube does not request credentials. Settings appear under YouTube settings as **FeurTube**; Shorts removal is already enabled on a fresh install.
+## Install
 
-To open shared YouTube links in FeurTube, go to Android **Settings → Apps → FeurTube → Set as default / Open by default**. Enable **Open supported links** and select `youtube.com`, `www.youtube.com`, `m.youtube.com` and `youtu.be`. If stock YouTube already owns those links, turn off its supported-link handling first. Removing stock YouTube alone does not assign its links to FeurTube. Android documents this [manual domain association](https://developer.android.com/training/app-links/verify-applinks#request-user-associate).
+Install [ReVanced GmsCore](https://github.com/ReVanced/GmsCore/releases), then the FeurTube APK. GmsCore is a separate microG-based Google-services implementation used for sign-in; it runs alongside Google Play Services and handles account authentication. Settings appear in the app under **FeurTube**. Shorts hiding is enabled on a fresh install; stream spoofing defaults to off.
 
-## Development
+For shared links, open Android **Settings → Apps → FeurTube → Set as default / Open by default**. Enable **Open supported links** for `youtube.com`, `www.youtube.com`, `m.youtube.com` and `youtu.be`. If stock YouTube owns those links, disable its supported-link handling first. Removing YouTube alone does not assign its links to FeurTube.
 
-Read [docs/IMPLEMENTATION.md](docs/IMPLEMENTATION.md) for the hooks and [docs/HANDOFF.md](docs/HANDOFF.md) for current work. Record Android results in [docs/TESTING.md](docs/TESTING.md). The bundle currently targets the desktop CLI; importing it into an Android patch manager is unsupported.
+## Code
 
-GPL-3.0-only. Upstream notices are retained in [NOTICE](NOTICE); provenance is in [docs/UPSTREAM.md](docs/UPSTREAM.md). FeurTube is independent of Google, YouTube, FeurStagram, RVX and Morphe. Do not commit signing keys, account data or YouTube APKs.
+[feurtube](feurtube) downloads the pinned tools, compiles the extension with `javac` and D8, applies the patches, verifies the rebuilt hooks and signs the APK. Downloads are SHA-256 pinned in [upstream.lock.json](upstream.lock.json); upstream binaries are not rebuilt from source. The patch bundle targets the desktop CLI.
+
+[FeurTubePatch.java](patches/src/app/feurtube/patches/FeurTubePatch.java) hooks RVX's settings constructor and Shorts navigation handler. [ShortsPolicy.java](extension/src/app/feurtube/extension/ShortsPolicy.java) supplies the defaults and regular-player redirect. RVX provides YouTube fingerprints, component filtering and GmsCore integration.
+
+GPL-3.0-only. Preserve [LICENSE](LICENSE), [NOTICE](NOTICE) and upstream credits. Keep APKs, signing keys and account data out of Git.

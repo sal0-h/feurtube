@@ -116,8 +116,7 @@ def build():
                             for p in extension.rglob("*.class")})
     run([sdk_tool("d8"), "--min-api", "26", "--classpath", stubs, "--output", dex, extension_jar])
     compile_java(ROOT / "patches/src", classes, [cli, upstream])
-    # Morphe isolates bundle class loaders. Put the dependency and its dependent
-    # policy in one desktop bundle so dependsOn() refers to the same patch objects.
+    # Morphe isolates bundle class loaders; dependencies must share one bundle.
     with zipfile.ZipFile(upstream) as source:
         entries = {name: source.read(name) for name in source.namelist()
                    if not name.endswith("/") and name != "classes.dex"}
@@ -149,7 +148,6 @@ def test():
     run([java_tool("java"), "-ea", "-cp",
          os.pathsep.join(map(str, [BUILD / "tests", BUILD / "classes", BUILD / "extension", BUILD / "stubs", cli, upstream])),
          "app.feurtube.tests.PolicyTest", upstream, BUILD / "test-mutated.dex", BUILD / "dex/classes.dex"])
-    # Exercise the actual loader as well as the Java tests.
     run([java_tool("java"), "-jar", cli, "list-patches", "--patches", bundle,
          "--out", BUILD / "patch-list.txt"])
     if "FeurTube policy" not in (BUILD / "patch-list.txt").read_text():
@@ -226,7 +224,6 @@ def patch(args):
     if output == apk or output == keystore or output.exists():
         raise ValueError("Output must be a new path, separate from the input and signing key")
     cli, upstream, bundle = build()
-    # Keep each attempt's report and log, including failures.
     import tempfile
     attempt = Path(tempfile.mkdtemp(prefix="patch-", dir=BUILD))
     report = attempt / "patch-report.json"

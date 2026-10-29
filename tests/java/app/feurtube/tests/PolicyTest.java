@@ -74,7 +74,6 @@ public final class PolicyTest {
         assert java.util.stream.StreamSupport.stream(
             redirect.getImplementation().getInstructions().spliterator(), false).count() == 3;
         for (var instruction : redirect.getImplementation().getInstructions()) {
-            // There must be no return-false path back into the Shorts feed.
             if (instruction.getOpcode() == Opcode.RETURN) {
                 assert ((com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction) instruction).getRegisterA() == 0;
             }

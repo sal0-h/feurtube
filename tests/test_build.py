@@ -1,4 +1,3 @@
-"""Checks for patch selection, input checks and artifact handling."""
 import importlib.machinery
 import importlib.util
 import os

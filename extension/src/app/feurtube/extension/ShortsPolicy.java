@@ -4,7 +4,6 @@ package app.feurtube.extension;
 import app.morphe.extension.youtube.patches.player.OpenVideosFullscreenHookPatch;
 import app.morphe.extension.youtube.utils.VideoUtils;
 
-/** Defaults applied before an upstream Setting loads its saved preference. */
 public final class ShortsPolicy {
     private ShortsPolicy() {}
 
@@ -12,8 +11,7 @@ public final class ShortsPolicy {
         switch (key) {
             case "morphe_spoof_video_streams":
             case "revanced_spoof_streaming_data":
-                // Preserve the stock playback client first, including Premium capabilities.
-                // Users may enable the upstream workaround if stock playback fails.
+                // Keep the stock streaming client for Premium compatibility.
                 return Boolean.FALSE;
             case "revanced_hide_navigation_shorts_button":
             case "revanced_hide_shorts_shelf":

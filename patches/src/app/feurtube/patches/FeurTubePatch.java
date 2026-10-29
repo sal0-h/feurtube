@@ -15,7 +15,6 @@ import com.android.tools.smali.dexlib2.iface.ClassDef;
 import java.util.List;
 import kotlin.Unit;
 
-/** Desktop Morphe patch; all app-specific fingerprints belong to pinned RVX. */
 public final class FeurTubePatch {
     public static final String POLICY = "Lapp/feurtube/extension/ShortsPolicy;";
     public static final String SETTING = "Lapp/morphe/extension/shared/settings/Setting;";
@@ -81,8 +80,7 @@ public final class FeurTubePatch {
             original.getName(), original.getParameters(), original.getReturnType(),
             original.getAccessFlags(), original.getAnnotations(), original.getHiddenApiRestrictions(),
             new ImmutableMethodImplementation(2, List.of(), List.of(), List.of())));
-        // Modified from RVX ShortsPatch.openShortInRegularPlayer. Retain its regular-player
-        // route, but consume empty-ID launches and remove its selected-Shorts-tab exemption.
+        // Modified from RVX ShortsPatch.openShortInRegularPlayer.
         // Original authors: anddea, inotia00 and Morphe contributors. See NOTICE.
         INS.addInstructions(replacement, 0, """
             invoke-static {p0}, Lapp/feurtube/extension/ShortsPolicy;->openShort(Ljava/lang/String;)Z

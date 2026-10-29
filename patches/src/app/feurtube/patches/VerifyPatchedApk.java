@@ -11,7 +11,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.zip.ZipFile;
 
-/** Check our injected hooks in the rebuilt APK before signing it. */
 public final class VerifyPatchedApk {
     public static void main(String[] args) throws Exception {
         var found = new HashMap<String, ClassDef>();
