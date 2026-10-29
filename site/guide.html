@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Setup guide — FeurTube</title>
+  <meta name="description" content="Build FeurTube locally, install GmsCore, and set up YouTube links. Supported APK versions, tested behavior and trust considerations.">
+  <link rel="canonical" href="https://sal0-h.github.io/feurtube/guide.html">
+  <meta name="theme-color" content="#0b1018">
+  <link rel="icon" href="assets/icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="assets/site.css">
+</head>
+<body>
+  <a class="skip" href="#main">Skip to content</a>
+  <header class="site-header"><div class="wrap header-inner">
+    <a class="brand" href="./"><img src="assets/icon.svg" width="35" height="35" alt="">FeurTube</a>
+    <nav class="nav" aria-label="Main navigation"><a href="./#faq">FAQ</a><a href="distribution.html">Releases &amp; legal</a><a class="source-link" href="https://github.com/sal0-h/feurtube">GitHub</a></nav>
+  </div></header>
+  <main class="wrap guide-layout" id="main">
+    <nav class="guide-nav" aria-label="On this page">
+      <a href="#compatibility">Compatibility</a>
+      <a href="#build">Build from source</a>
+      <a href="#install">Install and sign in</a>
+      <a href="#links">Open YouTube links</a>
+      <a href="#updates">Updates</a>
+      <a href="#trust">Trust and privacy</a>
+      <a href="#help">Troubleshooting</a>
+    </nav>
+    <article class="guide-body">
+      <a class="back-link" href="./">← Back to FeurTube</a>
+      <h1>Set up FeurTube</h1>
+      <p class="intro">FeurTube patches a supported YouTube APK on your computer. There is no public prepatched APK.</p>
+      <p class="notice">Sign-in requires ReVanced GmsCore, a separate microG-based app that participates in Google authentication. Read the <a href="#trust">trust notes</a> before adding an account.</p>
+
+      <section id="compatibility">
+        <h2>Compatibility</h2>
+        <table class="compatibility">
+          <thead><tr><th scope="col">YouTube APK</th><th scope="col">Upstream Android minimum</th><th scope="col">FeurTube status</th></tr></thead>
+          <tbody>
+            <tr><td>21.13.164</td><td>Android 9</td><td>Accepted; no device test</td></tr>
+            <tr><td>21.39.525</td><td>Android 12L</td><td>Experimental; tested on Android 16</td></tr>
+          </tbody>
+        </table>
+        <p>Testing on a Samsung S23 Ultra confirmed Shorts hiding, shared Shorts in the regular player, Premium background playback, native downloads, offline playback and default link routing. Other devices and full Premium compatibility are untested.</p>
+        <p>Use a standalone, Google-signed APK. Split APKs and APKM, XAPK or APKS bundles are unsupported. The patcher rejects unsupported versions and signing certificates.</p>
+      </section>
+
+      <section id="build">
+        <h2>Build from source</h2>
+        <p>Requires Linux or macOS, Python 3.11+, JDK 21, and Android SDK build-tools <strong>34.0.0</strong>. Set <code>JAVA_HOME</code> and <code>ANDROID_HOME</code> to those installations.</p>
+        <pre><code>git clone https://github.com/sal0-h/feurtube.git
+cd feurtube
+./feurtube bootstrap
+./feurtube test</code></pre>
+        <p>Choose a strong keystore password. Enter it at the silent prompt, then generate your key and patch your APK:</p>
+        <pre><code>read -r -s FEURTUBE_KEYSTORE_PASSWORD
+export FEURTUBE_KEYSTORE_PASSWORD
+./feurtube keygen
+./feurtube patch /path/to/youtube-21.39.525.apk --experimental</code></pre>
+        <p>For 21.13.164, change the input path and omit <code>--experimental</code>. The output is <code>dist/feurtube.apk</code>, with a JSON build receipt beside it. Patch logs remain under <code>build/patch-*</code>. Existing output files are not overwritten.</p>
+        <p>The tests exercise the extension DEX and Morphe loader. They do not establish Android or playback compatibility. Downloads are pinned in <a href="https://github.com/sal0-h/feurtube/blob/main/upstream.lock.json">upstream.lock.json</a>; those upstream binaries are not rebuilt from source.</p>
+      </section>
+
+      <section id="install">
+        <h2>Install and sign in</h2>
+        <ol>
+          <li>Install <a href="https://github.com/ReVanced/GmsCore/releases">ReVanced GmsCore from its official releases</a>.</li>
+          <li>Transfer <code>dist/feurtube.apk</code> to your phone and install it. If Android asks, allow installation from the app you used to open the file; revoke that permission afterward.</li>
+          <li>Open FeurTube and complete sign-in on your device.</li>
+        </ol>
+        <p>The package is <code>app.feurtube.android</code>, so you can keep stock YouTube installed. Shorts hiding is enabled on a fresh install. Its settings are under <strong>FeurTube</strong> in the app’s settings. Stream spoofing defaults to off.</p>
+      </section>
+
+      <section id="links">
+        <h2>Open YouTube links</h2>
+        <p>In Android settings, open <strong>Apps → FeurTube → Set as default</strong> (sometimes called <strong>Open by default</strong>). Enable <strong>Open supported links</strong> for <code>youtube.com</code>, <code>www.youtube.com</code>, <code>m.youtube.com</code> and <code>youtu.be</code>.</p>
+        <p>If stock YouTube owns those links, turn off its supported-link handling first. You do not need to uninstall it. Some chat apps use their own browser; choose their option to open the link externally. Shared Shorts should open in the regular video player.</p>
+      </section>
+
+      <section id="updates">
+        <h2>Updates</h2>
+        <p>Back up <code>.cache/signing.p12</code> and its password privately. Every update must use the same key. Keep that directory when updating the source, then rerun the build with a supported APK and a new output path, for example <code>--output dist/feurtube-next.apk</code>.</p>
+        <p>Do not force a new YouTube version through the patcher or install the result of a failed patch. Check the <a href="https://github.com/sal0-h/feurtube">README</a> for version changes.</p>
+      </section>
+
+      <section id="trust">
+        <h2>Trust and privacy</h2>
+        <p>You are trusting FeurTube, RVX, Morphe and GmsCore, as well as the original YouTube app. GmsCore runs beside Google Play Services and handles authentication and tokens for the modified app. Local builds help you inspect the patching process; they do not prove every dependency is safe.</p>
+        <p>FeurTube adds no analytics service or project login. YouTube and its dependencies still communicate with Google. This website uses no analytics, cookies or third-party fonts; hosting requests are handled by GitHub Pages.</p>
+        <p>This is unofficial software. Service or account access may be restricted, and the project has not received Google’s permission. See <a href="distribution.html">distribution and legal considerations</a>.</p>
+      </section>
+
+      <section id="help">
+        <h2>Troubleshooting</h2>
+        <details><summary>The build rejects my APK</summary><p>Check its exact version and that it is a standalone APK. Do not edit the compatibility check. A checksum error for a downloaded tool needs investigation before replacing the pinned hash.</p></details>
+        <details><summary>Android refuses an update</summary><p>Check that you used the same signing key. A differently signed APK cannot update the existing installation. Do not remove an app or clear its data just to make a test pass.</p></details>
+        <details><summary>Shorts are still visible or playback fails</summary><p>Check the FeurTube settings and report the exact surface, YouTube version and Android version in a <a href="https://github.com/sal0-h/feurtube/issues">GitHub issue</a>. The initial device test does not cover every playback mode or entry point. Do not include account details, tokens, raw phone logs or authentication screenshots.</p></details>
+      </section>
+    </article>
+  </main>
+  <footer class="site-footer"><div class="wrap footer-row"><p>Independent of Google and YouTube. Built on <a href="https://github.com/anddea/revanced-patches">RVX</a> and <a href="https://github.com/MorpheApp/morphe-desktop">Morphe</a>.</p><div class="footer-links"><a href="./">Home</a><a href="https://github.com/sal0-h/feurtube/blob/main/NOTICE">Credits</a></div></div></footer>
+</body>
+</html>

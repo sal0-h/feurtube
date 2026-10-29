@@ -6,6 +6,8 @@ Uses [anddea's RVX patches](https://github.com/anddea/revanced-patches) and [Mor
 
 Experimental. Tested on a Samsung S23 Ultra running Android 16 with YouTube 21.39.525: Shorts hiding, shared Shorts in the regular player, Premium background playback, native offline downloads and default link routing. Other devices and full Premium compatibility are untested. No public APK release.
 
+[Website](https://sal0-h.github.io/feurtube/) · [Setup guide](https://sal0-h.github.io/feurtube/guide.html) · [Releases and legal considerations](https://sal0-h.github.io/feurtube/distribution.html)
+
 ## Build
 
 Requires Python 3.11+, JDK 21 and Android SDK build-tools **34.0.0** on Linux or macOS. Set `JAVA_HOME` and `ANDROID_HOME`.
@@ -39,3 +41,5 @@ For shared links, open Android **Settings → Apps → FeurTube → Set as defau
 [FeurTubePatch.java](patches/src/app/feurtube/patches/FeurTubePatch.java) hooks RVX's settings constructor and Shorts navigation handler. [ShortsPolicy.java](extension/src/app/feurtube/extension/ShortsPolicy.java) supplies the defaults and regular-player redirect. RVX provides YouTube fingerprints, component filtering and GmsCore integration.
 
 GPL-3.0-only. Preserve [LICENSE](LICENSE), [NOTICE](NOTICE) and upstream credits. Keep APKs, signing keys and account data out of Git.
+
+The buildless site lives in `site/` and deploys to GitHub Pages on changes to `main`. Preview it with `python3 -m http.server --directory site 8000`.

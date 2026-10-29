@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Releases and legal considerations — FeurTube</title>
+  <meta name="description" content="FeurTube distributes patch source. Why no prepatched APK is offered, and the copyright, terms and trademark questions around modified YouTube apps.">
+  <link rel="canonical" href="https://sal0-h.github.io/feurtube/distribution.html">
+  <meta name="theme-color" content="#0b1018">
+  <link rel="icon" href="assets/icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="assets/site.css">
+</head>
+<body>
+  <a class="skip" href="#main">Skip to content</a>
+  <header class="site-header"><div class="wrap header-inner">
+    <a class="brand" href="./"><img src="assets/icon.svg" width="35" height="35" alt="">FeurTube</a>
+    <nav class="nav" aria-label="Main navigation"><a href="guide.html">Setup</a><a class="source-link" href="https://github.com/sal0-h/feurtube">GitHub</a></nav>
+  </div></header>
+  <main class="wrap guide-layout" id="main">
+    <nav class="guide-nav" aria-label="On this page"><a href="#releases">Source releases</a><a href="#us">United States</a><a href="#qatar">Qatar</a><a href="#branding">Branding</a></nav>
+    <article class="guide-body">
+      <a class="back-link" href="./">← Back to FeurTube</a>
+      <h1>Releases and legal considerations</h1>
+      <p class="intro">FeurTube distributes patch source and local build instructions. It does not offer a prepatched YouTube APK.</p>
+      <p class="small">Research checked October 29, 2026. This explains the distribution decision; it is not a legal opinion or clearance.</p>
+      <section id="releases">
+        <h2>Source releases</h2>
+        <p><a href="https://github.com/sal0-h/feurtube/releases">GitHub releases</a> are intended for versioned source snapshots and compatibility notes. A source release does not contain YouTube’s APK, signing keys, or account data. Use the <a href="guide.html#build">build guide</a> with your own supported APK.</p>
+        <p>FeurTube’s code is GPL-3.0-only. Preserve its license and <a href="https://github.com/sal0-h/feurtube/blob/main/NOTICE">upstream notices</a>. That license does not grant rights to Google’s proprietary app. Shipping compiled upstream patches would also require satisfying their corresponding-source obligations.</p>
+      </section>
+      <section id="us">
+        <h2>United States</h2>
+        <p>Google could send a takedown demand or bring a claim; open source is not immunity. In March 2024, Google submitted a <a href="https://github.com/github/dmca/blob/master/2024/03/2024-03-06-google.md">DMCA notice targeting redistributed modified YouTube binaries</a>, including a ReVanced Extended Android module. A notice is a claim, not a court judgment, but it is a concrete distribution risk.</p>
+        <p><a href="https://www.youtube.com/static?template=terms&amp;hl=en&amp;gl=US">YouTube’s terms</a> restrict modification, distribution and reverse engineering of its software, subject to permission and applicable law. Contract issues are separate from copyright infringement.</p>
+        <p><a href="https://www.govinfo.gov/content/pkg/USCODE-2024-title17/html/USCODE-2024-title17-chap12-sec1201.htm">17 USC §1201</a> also regulates bypassing certain technological protections and distributing circumvention tools. Whether particular patch hooks fall within it is fact-specific. Avoiding APK redistribution removes that particular copying step; it does not settle terms or anti-circumvention questions.</p>
+      </section>
+      <section id="qatar">
+        <h2>Qatar</h2>
+        <p>Moving to Qatar does not establish that worldwide distribution is permitted. Qatar’s <a href="https://www.wipo.int/wipolex/en/legislation/details/3567">Law No. 7 of 2002</a> protects reproduction and transformation rights (Article 7). Article 51 addresses certain devices that defeat reproduction protections and unauthorized changes to rights-management data. Applying those provisions to FeurTube requires local advice.</p>
+        <p>Before distributing modified APKs or monetizing the project, obtain advice that covers the actual patch behavior, US and Qatar law, and the intended distribution countries.</p>
+      </section>
+      <section id="branding">
+        <h2>Branding</h2>
+        <p>FeurTube uses its own mark and identifies itself as unofficial. This is not trademark clearance: the <a href="https://www.uspto.gov/page/about-trademark-infringement">USPTO explains</a> that confusing users about a product’s source or sponsorship can support an infringement claim. Do not present FeurTube as approved by Google or YouTube.</p>
+      </section>
+    </article>
+  </main>
+  <footer class="site-footer"><div class="wrap footer-row"><p>FeurTube is independent of Google and YouTube.</p><div class="footer-links"><a href="guide.html">Setup guide</a><a href="https://github.com/sal0-h/feurtube">Source</a></div></div></footer>
+</body>
+</html>
