@@ -2,13 +2,13 @@
 
 YouTube with Shorts hidden by default. Open a shared Short as one video in the regular player, without the swipe feed.
 
-**Experimental.** A YouTube 21.39.525 build has been patched, signed and installed alongside stock YouTube on a test phone. Startup and feature testing are in progress. Premium behavior remains unverified. There is no public release APK.
+**Experimental.** The first tester reports background playback, native offline downloads and no visible Shorts on a Samsung S23 Ultra running Android 16. A direct Shorts link was also observed opening in the regular player. Other devices and the remaining Premium features are unverified. There is no public release APK.
 
 FeurTube patches the Android app using [Morphe](https://github.com/MorpheApp/morphe-desktop) and [anddea's RVX patches](https://github.com/anddea/revanced-patches). [FeurStagram](https://github.com/jean-voila/FeurStagram) inspired the scope: useful features stay accessible; distracting surfaces start disabled.
 
 The default policy hides the Shorts navigation button and shelves in Home, Search, Subscriptions, channels, history and related videos. It disables Shorts resume on startup and removes the Shorts launcher shortcut. Shared Shorts use the regular player. Empty Shorts launches are consumed.
 
-Normal playback, accounts, subscriptions, history and Premium features are requirements. Premium parity remains unverified, including native offline downloads, background playback, PiP, casting and enhanced bitrate. Stream spoofing starts **off** to try the stock playback client first. Non-root sign-in uses GmsCore and may still affect compatibility. Keep stock YouTube installed during testing.
+Normal playback, accounts, subscriptions, history and Premium features are requirements. Background playback and native offline downloads passed the first user's tests. PiP, casting, enhanced bitrate and full Premium parity remain unverified. Stream spoofing starts **off** to try the stock playback client first. Non-root sign-in uses GmsCore and may still affect compatibility. Keep stock YouTube installed during testing.
 
 ## Build
 
@@ -26,7 +26,7 @@ Supply a complete, unmodified YouTube APK yourself:
 | YouTube version | Upstream Android floor | FeurTube status |
 | --- | --- | --- |
 | 21.13.164 | Android 9 | Host tests only |
-| 21.39.525 | Android 12L | Experimental; build and install verified; feature tests pending |
+| 21.39.525 | Android 12L | Experimental; background play, offline downloads and Shorts hiding user-tested on one device |
 
 APKM, XAPK, APKS and split APK inputs are not supported. Other versions and unrecognized signing certificates are rejected. Accepted Google certificate fingerprints are pinned in the lock file. An older supported version remains an older client even though FeurTube does not select the app-version spoof patch.
 

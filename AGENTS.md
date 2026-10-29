@@ -9,4 +9,5 @@ Read `docs/HANDOFF.md` before continuing. Keep it current when stopping or handi
 - Preserve upstream notices and visible credits. No proprietary APKs, signing keys, tokens, device identifiers, account screenshots or raw phone logs in Git or GitHub artifacts.
 - Device tests use the separate package `app.feurtube.android`. Let the user handle authentication and account actions. Record only sanitized outcomes. Ask before interrupting personal playback or changing phone-wide settings.
 - Check the focused package before each UI capture. Capture only FeurTube or its relevant non-authentication setup prompt. Never capture another foreground app or a login form. UI dumps can time out while leaving an old file behind; check capture success before using one.
+- Morphe can rename activities to `app.feurtube.android.morphe_original_*`. Gate task screenshots by the exact foreground package and context, not an assumed original activity name.
 - Keep docs factual and short. Label untested behavior. Do not add badges, release claims, broad feature patches or a website before the core app works.

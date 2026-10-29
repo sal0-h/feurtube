@@ -1,6 +1,6 @@
 # Android validation
 
-A complete APK was patched, signed, verified and installed on 2026-10-29. First launch reached Android's notification permission prompt with the app process running. Startup and feature testing continue after that prompt. [Host tests passed in CI](https://github.com/sal0-h/feurtube/actions/runs/40966214573), including the report-format regression checks and rebuilt-APK verifier. Premium compatibility has not passed.
+A complete APK was patched, signed, verified and installed on 2026-10-29. The user subsequently confirmed background playback, no visible Shorts, and downloaded videos playing offline in FeurTube's own Downloads. These are manual results from one device, not a full Premium compatibility result. [Host tests passed in CI](https://github.com/sal0-h/feurtube/actions/runs/40966214573), including the report-format regression checks and rebuilt-APK verifier.
 
 Test device available: Samsung S23 Ultra, Android 16 (API 36). Stock YouTube is 21.43.523, outside the pinned compatibility list. No device identifier or account data belongs in this file.
 
@@ -12,22 +12,30 @@ For each device run, record the YouTube version, input APK SHA-256, FeurTube com
 
 | Check | Expected result | Status |
 | --- | --- | --- |
-| Fresh install and cold start | Separate FeurTube app opens without a crash | Installed; first launch reached notification prompt; full startup pending |
-| Google account / Premium | User signs in; existing subscription recognized | Pending |
+| Install and initial startup | Separate FeurTube app opens and is usable | Pass: installed; user exercised the app |
+| Google account / Premium | User signs in; existing subscription recognized | Background playback and native downloads user-confirmed; account UI not inspected |
+| Shorts visibility in normal use | Shorts absent while ordinary YouTube remains usable | Pass: user reports no Shorts; individual surfaces below still need checks |
 | Home, Search, Subscriptions, channels, history | Shorts shelves absent; normal videos remain | Pending |
 | Bottom navigation | No Shorts button | Pending |
-| Shared `/shorts/ID`, short link and in-app Short | Regular player; no swipe feed | Pending |
+| Direct `/shorts/ID` link | Regular video page rather than the Shorts player | Pass: agent observed the recent vertical NASA Short `myZ9kn9MIWQ` in the regular player |
+| Short `youtu.be` link and in-app Short | Regular player | Pending |
+| Android default link routing | Links open in FeurTube when selected by the user | Pending; direct test used an explicit package; phone-wide defaults unchanged |
 | Shorts launcher shortcut / empty launch | No Shorts feed | Pending |
 | Relaunch after a Short | No Shorts resume | Pending |
 | Normal playback | Seek, captions, speed, audio tracks and live video work | Pending |
-| Background playback and lock screen | Premium playback continues; controls work | Pending |
+| Background playback | Playback continues outside the app | Pass: user report |
+| Lock-screen controls | Pause, resume and seek work while locked | Pending |
 | Picture-in-picture | Video continues after leaving the app | Pending |
-| Native Premium downloads | Download and play offline using YouTube's own library | Pending |
+| Native Premium downloads | Download and play offline using YouTube's own library | Pass: user explicitly confirmed offline playback in FeurTube's own Downloads |
 | Smart Downloads / downloaded playlist | Existing Premium behavior retained | Pending |
 | Premium quality / queue / continue watching | Available as in stock for the same account and content | Pending |
 | Casting | Existing receiver and account flow works | Pending |
 | Library and history | Subscriptions, playlists and playback history sync | Pending |
 | Upgrade with the same signing key | Installs over FeurTube and retains preferences | Pending |
+
+Shared-link test: with the user ready and no personal playback interrupted, Android opened `https://www.youtube.com/shorts/myZ9kn9MIWQ` explicitly in `app.feurtube.android`. The agent observed NASA's recent vertical "2026 Solar Eclipse @ 50,000 Feet" video playing above the normal title/channel/action area and standard watch-page content. This verifies the regular-player route for that direct Shorts URL. It does not verify every navigation path or a swipe gesture. An older `/shorts/O1gj-MMjtqc` URL also opened normally, but that result alone would not establish handling of a genuine Short.
+
+The initial capture gate was too narrow: Morphe renamed the foreground activity to `app.feurtube.android.morphe_original_5`, so requiring the original `watchwhile.MainActivity` name rejected a valid FeurTube screen. Checking the exact foreground package resolved this. No application-code change was needed. Screenshots stayed private and were removed after inspection.
 
 Test native downloads separately from external downloaders. They are different features. If a workaround enables playback but loses a Premium feature, record that as a regression. Do not silently enable stream spoofing, replace a Premium feature, or count another app as a pass.
 
