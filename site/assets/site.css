@@ -525,6 +525,38 @@ pre code {
   font-size:29px;
 }
 
+.guide-body h3 {
+  margin-top:28px;
+}
+
+.code-controls {
+  display:flex;
+  align-items:center;
+  justify-content:flex-end;
+  gap:14px;
+  margin-top:20px;
+  color:var(--muted);
+  font-size:12px;
+}
+
+.code-controls button {
+  min-height:44px;
+  padding:6px 15px;
+  border:1px solid var(--line);
+  border-radius:8px;
+  background:var(--surface);
+  color:var(--ink);
+  cursor:pointer;
+}
+
+.code-controls button:hover {
+  border-color:var(--accent);
+}
+
+pre.with-copy {
+  margin-top:6px;
+}
+
 .guide-body p,.guide-body li {
   font-size:15px;
   color:#c0ccdc;

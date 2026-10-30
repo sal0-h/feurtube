@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Build the FeurTube policy bundle and patch a user-supplied YouTube APK."""
 import argparse
+import getpass
 import hashlib
 import json
 import os
@@ -34,7 +35,7 @@ def run(args, **kwargs):
 def java_tool(name):
     home = os.environ.get("JAVA_HOME")
     tool = str(Path(home) / "bin" / name) if home else shutil.which(name)
-    if not tool or not Path(tool).is_file():
+    if not tool or not Path(tool).is_file() or not os.access(tool, os.X_OK):
         raise ValueError(f"{name} missing; set JAVA_HOME to a JDK 21 installation")
     return tool
 
@@ -42,11 +43,49 @@ def java_tool(name):
 def sdk_tool(name):
     sdk = os.environ.get("ANDROID_HOME") or os.environ.get("ANDROID_SDK_ROOT")
     if not sdk:
-        raise ValueError("Set ANDROID_HOME to an Android SDK with build-tools 34.0.0+")
+        raise ValueError(f"Set ANDROID_HOME to an Android SDK with build-tools {LOCK['android_build_tools']}")
     tool = Path(sdk) / "build-tools" / LOCK["android_build_tools"] / name
     if not tool.is_file():
         raise ValueError(f"{tool} missing; install SDK build-tools {LOCK['android_build_tools']}")
+    if not os.access(tool, os.X_OK):
+        raise ValueError(f"{tool} is not executable; check the SDK installation")
     return tool
+
+
+def check_environment():
+    if sys.version_info < (3, 11):
+        raise ValueError("Python 3.11 or newer is required")
+    for name in ("java", "javac"):
+        result = run([java_tool(name), "-version"], capture_output=True, text=True)
+        match = re.search(r'\b(?:openjdk|java|javac)(?: version)? "?(\d+)', result.stdout + result.stderr)
+        if not match or match[1] != "21":
+            found = match[1] if match else "an unknown version"
+            raise ValueError(f"JDK 21 required; {name} reports {found}. Set JAVA_HOME to JDK 21")
+    java_tool("keytool")
+    for name, option in (("aapt2", "version"), ("d8", "--version"), ("apksigner", "version")):
+        run([sdk_tool(name), option], capture_output=True, text=True)
+
+
+def doctor():
+    check_environment()
+    print(f"Python {sys.version.split()[0]}: OK")
+    print("JDK 21: OK")
+    print(f"Android SDK build-tools {LOCK['android_build_tools']}: OK")
+    print("Ready to build. No tools were downloaded and no files were changed.")
+
+
+def ensure_password(confirm=False):
+    if os.environ.get("FEURTUBE_KEYSTORE_PASSWORD"):
+        return
+    if not sys.stdin.isatty():
+        raise ValueError("Set FEURTUBE_KEYSTORE_PASSWORD, or run in a terminal to enter it privately")
+    value = getpass.getpass("Keystore password: ")
+    if not value or (confirm and len(value) < 6):
+        raise ValueError("A new keystore password must have at least 6 characters" if confirm
+                         else "Keystore password cannot be empty")
+    if confirm and value != getpass.getpass("Confirm password: "):
+        raise ValueError("Passwords did not match; no key was created")
+    os.environ["FEURTUBE_KEYSTORE_PASSWORD"] = value
 
 
 def bootstrap():
@@ -211,6 +250,33 @@ def validate_report(result):
         raise ValueError("Incomplete or failed patch report")
 
 
+def validate_output(output, apk, keystore):
+    receipt = output.with_suffix(".json")
+    if output.suffix.lower() != ".apk":
+        raise ValueError("Output filename must end in .apk")
+    reserved = {apk, apk.resolve(), keystore, keystore.resolve()}
+    if any(path in reserved or path.resolve() in reserved or path.exists() or path.is_symlink()
+           for path in (output, receipt)):
+        raise ValueError("Output APK and JSON receipt must be new paths, separate from the input and signing key")
+
+
+def publish_outputs(signed, output, receipt):
+    created = []
+    try:
+        with output.open("xb") as target:
+            created.append(output)
+            with output.with_suffix(".json").open("x") as metadata:
+                created.append(output.with_suffix(".json"))
+                with signed.open("rb") as source:
+                    shutil.copyfileobj(source, target)
+                json.dump(receipt, metadata, indent=2)
+                metadata.write("\n")
+    except BaseException:
+        for path in created:
+            path.unlink(missing_ok=True)
+        raise
+
+
 def patch(args):
     apk = args.apk.resolve()
     version = validate_input(apk)
@@ -218,11 +284,11 @@ def patch(args):
         raise ValueError(f"YouTube {version} is experimental; pass --experimental to test it")
     certificates = verify_input_signature(apk)
     keystore = args.keystore.resolve()
-    if not keystore.is_file() or not os.environ.get("FEURTUBE_KEYSTORE_PASSWORD"):
-        raise ValueError("Run keygen first; set FEURTUBE_KEYSTORE_PASSWORD and supply --keystore if needed")
-    output = args.output.resolve()
-    if output == apk or output == keystore or output.exists():
-        raise ValueError("Output must be a new path, separate from the input and signing key")
+    if not keystore.is_file():
+        raise ValueError("Run keygen first, or supply an existing key with --keystore")
+    output = args.output.expanduser().absolute()
+    validate_output(output, apk, keystore)
+    ensure_password()
     cli, upstream, bundle = build()
     import tempfile
     attempt = Path(tempfile.mkdtemp(prefix="patch-", dir=BUILD))
@@ -239,26 +305,26 @@ def patch(args):
     package, patched_version = apk_metadata(unsigned)
     if package != PACKAGE or patched_version != version:
         raise ValueError("Output identity does not match FeurTube and the input version")
-    output.parent.mkdir(parents=True, exist_ok=True)
+    signed = attempt / "signed.apk"
     run([sdk_tool("apksigner"), "sign", "--ks", keystore, "--ks-key-alias", "feurtube",
          "--ks-pass", "env:FEURTUBE_KEYSTORE_PASSWORD", "--key-pass", "env:FEURTUBE_KEYSTORE_PASSWORD",
-         "--v4-signing-enabled", "false", "--out", output, unsigned])
-    run([sdk_tool("apksigner"), "verify", "--verbose", "--print-certs", output])
-    receipt = {"input_sha256": digest(apk), "output_sha256": digest(output),
+         "--v4-signing-enabled", "false", "--out", signed, unsigned])
+    run([sdk_tool("apksigner"), "verify", "--verbose", "--print-certs", signed])
+    receipt = {"input_sha256": digest(apk), "output_sha256": digest(signed),
                "input_certificate_sha256": certificates,
                "youtube_version": version, "package": PACKAGE, "upstream": LOCK,
                "policy_sha256": digest(bundle), "patch_report": str(report),
                "android_tested": False}
-    output.with_suffix(".json").write_text(json.dumps(receipt, indent=2) + "\n")
+    output.parent.mkdir(parents=True, exist_ok=True)
+    publish_outputs(signed, output, receipt)
     print(f"Signed {output}. Android behavior still requires device testing.")
 
 
 def keygen(args):
-    if not os.environ.get("FEURTUBE_KEYSTORE_PASSWORD"):
-        raise ValueError("Set FEURTUBE_KEYSTORE_PASSWORD before generating a signing key")
     key = args.keystore.resolve()
     if key.exists():
         raise ValueError(f"Refusing to replace signing key: {key}")
+    ensure_password(confirm=True)
     key.parent.mkdir(parents=True, exist_ok=True)
     old_umask = os.umask(0o077)
     try:
@@ -273,7 +339,7 @@ def keygen(args):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     sub = parser.add_subparsers(dest="command", required=True)
-    for name in ("bootstrap", "build", "test"):
+    for name in ("doctor", "bootstrap", "build", "test"):
         sub.add_parser(name)
     for name in ("keygen", "patch"):
         command = sub.add_parser(name)
@@ -284,7 +350,11 @@ def main():
             command.add_argument("--experimental", action="store_true")
     args = parser.parse_args()
     try:
-        {"bootstrap": bootstrap, "build": build, "test": test,
+        if sys.version_info < (3, 11):
+            raise ValueError("Python 3.11 or newer is required")
+        if args.command in ("build", "test", "patch"):
+            check_environment()
+        {"doctor": doctor, "bootstrap": bootstrap, "build": build, "test": test,
          "keygen": lambda: keygen(args), "patch": lambda: patch(args)}[args.command]()
     except (ValueError, OSError, subprocess.CalledProcessError) as error:
         print(f"feurtube: {error}", file=sys.stderr)

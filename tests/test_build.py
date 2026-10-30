@@ -4,6 +4,7 @@ import os
 import json
 from pathlib import Path
 import tempfile
+import subprocess
 from types import SimpleNamespace
 import unittest
 import zipfile
@@ -16,6 +17,39 @@ loader.exec_module(ft)
 
 
 class BuildTests(unittest.TestCase):
+    def test_wrong_jdk_rejected_before_sdk_checks(self):
+        result = SimpleNamespace(stdout="", stderr='openjdk version "27.0.1"')
+        with (patch.object(ft, "java_tool", return_value="java"),
+              patch.object(ft, "run", return_value=result),
+              patch.object(ft, "sdk_tool") as sdk):
+            with self.assertRaisesRegex(ValueError, "JDK 21 required"):
+                ft.check_environment()
+            sdk.assert_not_called()
+
+    def test_mismatched_compiler_rejected(self):
+        results = [SimpleNamespace(stdout="", stderr='openjdk version "21.0.9"'),
+                   SimpleNamespace(stdout="javac 27.0.1", stderr="")]
+        with (patch.object(ft, "java_tool", side_effect=lambda name: name),
+              patch.object(ft, "run", side_effect=results)):
+            with self.assertRaisesRegex(ValueError, "javac reports 27"):
+                ft.check_environment()
+
+    def test_noninteractive_password_is_not_read_or_echoed(self):
+        with (patch.dict(os.environ, {}, clear=True),
+              patch.object(ft.sys.stdin, "isatty", return_value=False),
+              patch.object(ft.getpass, "getpass") as prompt):
+            with self.assertRaisesRegex(ValueError, "run in a terminal"):
+                ft.ensure_password()
+            prompt.assert_not_called()
+
+    def test_password_confirmation_failure_does_not_set_password(self):
+        with (patch.dict(os.environ, {}, clear=True),
+              patch.object(ft.sys.stdin, "isatty", return_value=True),
+              patch.object(ft.getpass, "getpass", side_effect=["test-secret", "different"])):
+            with self.assertRaisesRegex(ValueError, "did not match"):
+                ft.ensure_password(confirm=True)
+            self.assertNotIn("FEURTUBE_KEYSTORE_PASSWORD", os.environ)
+
     def test_actual_report_format_lists_selected_roots(self):
         report = json.loads((ft.ROOT / "tests/fixtures/patch-report.json").read_text())
         ft.validate_report(report)
@@ -87,6 +121,85 @@ class BuildTests(unittest.TestCase):
         self.assertNotIn(b'android:key="revanced_shorts_player_type"', entries[path])
         with self.assertRaisesRegex(ValueError, "Expected one upstream"):
             ft.configure_resources(entries)
+
+
+class OutputTests(unittest.TestCase):
+    def test_receipt_cannot_replace_the_apk_or_keystore(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            with self.assertRaisesRegex(ValueError, "end in .apk"):
+                ft.validate_output(root / "app.json", root / "input.apk", root / "key.p12")
+            key = root / "app.json"
+            key.write_bytes(b"private key")
+            with self.assertRaisesRegex(ValueError, "new paths"):
+                ft.validate_output(root / "app.apk", root / "input.apk", key)
+            self.assertEqual(key.read_bytes(), b"private key")
+
+    def test_broken_output_symlink_is_preserved(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            output = root / "output.apk"
+            destination = root / "future.apk"
+            output.symlink_to(destination)
+            with self.assertRaisesRegex(ValueError, "new paths"):
+                ft.validate_output(output, root / "input.apk", root / "key.p12")
+            self.assertTrue(output.is_symlink())
+            self.assertFalse(destination.exists())
+
+    def test_receipt_created_during_patching_is_preserved(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            signed, output = root / "signed.apk", root / "output.apk"
+            signed.write_bytes(b"signed apk")
+            output.with_suffix(".json").write_text("existing data")
+            with self.assertRaises(FileExistsError):
+                ft.publish_outputs(signed, output, {})
+            self.assertFalse(output.exists())
+            self.assertEqual(output.with_suffix(".json").read_text(), "existing data")
+
+    def test_interrupted_copy_removes_incomplete_outputs(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            signed, output = root / "signed.apk", root / "output.apk"
+            signed.write_bytes(b"signed apk")
+            with patch.object(ft.shutil, "copyfileobj", side_effect=OSError("disk full")):
+                with self.assertRaisesRegex(OSError, "disk full"):
+                    ft.publish_outputs(signed, output, {})
+            self.assertFalse(output.exists())
+            self.assertFalse(output.with_suffix(".json").exists())
+
+    def test_failed_signature_verification_does_not_publish_an_apk(self):
+        report = (ft.ROOT / "tests/fixtures/patch-report.json").read_text()
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            apk, key, output = root / "input.apk", root / "key.p12", root / "output.apk"
+            apk.write_bytes(b"input apk")
+            key.write_bytes(b"private key")
+            args = SimpleNamespace(apk=apk, keystore=key, output=output, experimental=False)
+
+            def run(command, **kwargs):
+                if "-r" in command:
+                    Path(command[command.index("-r") + 1]).write_text(report)
+                elif "sign" in command:
+                    Path(command[command.index("--out") + 1]).write_bytes(b"bad signature")
+                elif "verify" in command:
+                    raise subprocess.CalledProcessError(1, command)
+
+            with (patch.object(ft, "BUILD", root),
+                  patch.object(ft, "validate_input", return_value="21.13.164"),
+                  patch.object(ft, "verify_input_signature", return_value=[]),
+                  patch.object(ft, "ensure_password"),
+                  patch.object(ft, "build", return_value=(root / "cli", root / "upstream", root / "bundle")),
+                  patch.object(ft, "apk_metadata", return_value=(ft.PACKAGE, "21.13.164")),
+                  patch.object(ft, "java_tool", return_value="java"),
+                  patch.object(ft, "sdk_tool", side_effect=lambda name: name),
+                  patch.object(ft, "run", side_effect=run)):
+                with self.assertRaises(subprocess.CalledProcessError):
+                    ft.patch(args)
+            self.assertFalse(output.exists())
+            self.assertFalse(output.with_suffix(".json").exists())
+            self.assertEqual(apk.read_bytes(), b"input apk")
+            self.assertEqual(key.read_bytes(), b"private key")
 
 
 if __name__ == "__main__":

@@ -6,6 +6,15 @@ permissions:
   contents: read
 
 jobs:
+  site:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 2
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Check site links and compatibility facts
+        run: python3 -m unittest discover -s tests -p test_site.py
+      - name: Check guide script syntax
+        run: node --check site/assets/guide.js
   policy:
     runs-on: ubuntu-24.04
     timeout-minutes: 15

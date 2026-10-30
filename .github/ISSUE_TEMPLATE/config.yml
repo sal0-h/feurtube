@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Setup guide
+    url: https://sal0-h.github.io/feurtube/guide.html
+    about: Supported APK versions, builds, installation and settings.
+  - name: Report a security vulnerability privately
+    url: https://github.com/sal0-h/feurtube/security/advisories/new
+    about: Credential exposure, build integrity or other security vulnerabilities.

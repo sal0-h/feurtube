@@ -1,0 +1,45 @@
+name: Build or installation problem
+description: Toolchain, patching, signing, installation or update errors
+body:
+  - type: markdown
+    attributes:
+      value: Run `./feurtube doctor` first. Share only the relevant error text; remove local usernames and paths. Never attach APKs, signing keys, passwords, tokens or raw phone logs.
+  - type: dropdown
+    id: stage
+    attributes:
+      label: Where did it fail?
+      options:
+        - Toolchain check
+        - Downloading tools
+        - Tests
+        - Patching or signing
+        - Installing on Android
+        - Updating an existing installation
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Computer OS, or phone model and Android version
+      description: Include whichever applies to the failure.
+    validations:
+      required: true
+  - type: input
+    id: youtube-version
+    attributes:
+      label: YouTube APK version
+      placeholder: "Example: 21.39.525"
+  - type: textarea
+    id: command
+    attributes:
+      label: Command or installation steps
+      description: Include the FeurTube commit or source release, if known.
+    validations:
+      required: true
+  - type: textarea
+    id: error
+    attributes:
+      label: Error message
+      description: Paste the relevant lines as text after removing private details.
+    validations:
+      required: true

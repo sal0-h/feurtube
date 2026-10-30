@@ -1,0 +1,52 @@
+name: App bug
+description: Shorts, playback, Premium, settings or shared-link problems
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: Keep account details, APKs, signing keys, tokens and raw phone logs private. Use private vulnerability reporting for security issues.
+  - type: dropdown
+    id: area
+    attributes:
+      label: Affected area
+      options:
+        - Shorts still visible
+        - Shared Shorts or YouTube links
+        - Playback or Premium features
+        - Settings
+        - Sign-in
+        - Other
+    validations:
+      required: true
+  - type: input
+    id: youtube-version
+    attributes:
+      label: YouTube APK version
+      placeholder: "Example: 21.39.525"
+    validations:
+      required: true
+  - type: input
+    id: device
+    attributes:
+      label: Phone model and Android version
+      placeholder: "Example: Samsung S23 Ultra, Android 16"
+    validations:
+      required: true
+  - type: input
+    id: revision
+    attributes:
+      label: FeurTube commit or source release
+      description: If known, include the result of git rev-parse --short HEAD.
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to reproduce
+      description: Include relevant FeurTube settings and the surface where the problem occurs.
+    validations:
+      required: true
+  - type: textarea
+    id: behavior
+    attributes:
+      label: Expected and actual behavior
+    validations:
+      required: true

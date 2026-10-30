@@ -15,16 +15,17 @@ Requires Python 3.11+, JDK 21 and Android SDK build-tools **34.0.0** on Linux or
 Supply a standalone, Google-signed YouTube APK: **21.13.164** (Android 9+) or **21.39.525** (Android 12L+, experimental). Split APKs and APKM/XAPK/APKS bundles are unsupported.
 
 ```sh
+./feurtube doctor
 ./feurtube bootstrap
 ./feurtube test
 
-read -r -s FEURTUBE_KEYSTORE_PASSWORD
-export FEURTUBE_KEYSTORE_PASSWORD
 ./feurtube keygen
 ./feurtube patch /path/to/youtube-21.39.525.apk --experimental
 ```
 
-Output: `dist/feurtube.apk`, package `app.feurtube.android`. Logs and patch reports go under `build/patch-*`; a build receipt is written beside the APK. Use `--output` for another destination; existing files are not overwritten.
+`doctor` checks the toolchain without downloads. `keygen` asks privately for a new password; `patch` asks for the same password. Noninteractive builds can set `FEURTUBE_KEYSTORE_PASSWORD` in their environment.
+
+Output: `dist/feurtube.apk`, package `app.feurtube.android`. Logs and patch reports go under `build/patch-*`; a build receipt is written beside the verified APK. Use `--output` with a new `.apk` path for another destination. Neither the APK nor an existing receipt is overwritten.
 
 Back up `.cache/signing.p12` and its password privately. Updates need the same key. To use another key with alias `feurtube`, pass `--keystore /path/to/key.p12`.
 
@@ -43,3 +44,5 @@ For shared links, open Android **Settings → Apps → FeurTube → Set as defau
 GPL-3.0-only. Preserve [LICENSE](LICENSE), [NOTICE](NOTICE) and upstream credits. Keep APKs, signing keys and account data out of Git.
 
 The buildless site lives in `site/` and deploys to GitHub Pages on changes to `main`. Preview it with `python3 -m http.server --directory site 8000`.
+
+For bugs, use the [app or build issue forms](https://github.com/sal0-h/feurtube/issues/new/choose). Report vulnerabilities [privately](SECURITY.md). Keep pull requests focused and include validation results; distinguish host checks from actual Android testing.

@@ -6,21 +6,30 @@
   <title>Setup guide — FeurTube</title>
   <meta name="description" content="Build FeurTube locally, install GmsCore, and set up YouTube links. Supported APK versions, tested behavior and trust considerations.">
   <link rel="canonical" href="https://sal0-h.github.io/feurtube/guide.html">
+  <meta property="og:title" content="Set up FeurTube">
+  <meta property="og:description" content="Build locally, install alongside YouTube, and set up shared links.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://sal0-h.github.io/feurtube/guide.html">
+  <meta property="og:image" content="https://sal0-h.github.io/feurtube/assets/social.png">
+  <meta property="og:image:alt" content="FeurTube. YouTube without the Shorts feed.">
+  <meta name="twitter:card" content="summary_large_image">
   <meta name="theme-color" content="#0b1018">
   <link rel="icon" href="assets/icon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="assets/site.css">
+  <script src="assets/guide.js" defer></script>
 </head>
 <body>
   <a class="skip" href="#main">Skip to content</a>
   <header class="site-header"><div class="wrap header-inner">
     <a class="brand" href="./"><img src="assets/icon.svg" width="35" height="35" alt="">FeurTube</a>
-    <nav class="nav" aria-label="Main navigation"><a href="./#faq">FAQ</a><a href="https://github.com/sal0-h/feurtube/releases">Releases</a><a class="source-link" href="https://github.com/sal0-h/feurtube">GitHub</a></nav>
+    <nav class="nav" aria-label="Main navigation"><a href="./#faq">FAQ</a><a href="#help">Get help</a><a class="source-link" href="https://github.com/sal0-h/feurtube">GitHub</a></nav>
   </div></header>
   <main class="wrap guide-layout" id="main">
     <nav class="guide-nav" aria-label="On this page">
       <a href="#compatibility">Compatibility</a>
       <a href="#build">Build from source</a>
       <a href="#install">Install and sign in</a>
+      <a href="#settings">Find the settings</a>
       <a href="#links">Open YouTube links</a>
       <a href="#updates">Updates</a>
       <a href="#trust">Trust and privacy</a>
@@ -37,27 +46,33 @@
         <table class="compatibility">
           <thead><tr><th scope="col">YouTube APK</th><th scope="col">Upstream Android minimum</th><th scope="col">FeurTube status</th></tr></thead>
           <tbody>
-            <tr><td>21.13.164</td><td>Android 9</td><td>Accepted; no device test</td></tr>
-            <tr><td>21.39.525</td><td>Android 12L</td><td>Experimental; tested on Android 16</td></tr>
+            <tr data-youtube-version="21.13.164" data-experimental="false"><td>21.13.164</td><td>Android 9</td><td>Accepted; no device test</td></tr>
+            <tr data-youtube-version="21.39.525" data-experimental="true"><td>21.39.525</td><td>Android 12L</td><td>Experimental; tested on Android 16</td></tr>
           </tbody>
         </table>
-        <p>Testing on a Samsung S23 Ultra confirmed Shorts hiding, shared Shorts in the regular player, Premium background playback, native downloads, offline playback and default link routing. Other devices and full Premium compatibility are untested.</p>
+        <p>Testing with 21.39.525 on a Samsung S23 Ultra confirmed Shorts hiding, shared Shorts in the regular player, Premium background playback, native downloads, offline playback and default link routing. Other devices and full Premium compatibility are untested, including PiP, casting and enhanced bitrate.</p>
         <p>Use a standalone, Google-signed APK. Split APKs and APKM, XAPK or APKS bundles are unsupported. The patcher rejects unsupported versions and signing certificates.</p>
       </section>
 
       <section id="build">
         <h2>Build from source</h2>
-        <p>Requires Linux or macOS, Python 3.11+, JDK 21, and Android SDK build-tools <strong>34.0.0</strong>. Set <code>JAVA_HOME</code> and <code>ANDROID_HOME</code> to those installations.</p>
-        <pre><code>git clone https://github.com/sal0-h/feurtube.git
+        <p>On your computer, install Git, Python 3.11+, <a href="https://adoptium.net/temurin/releases/?version=21">JDK 21</a>, and <a href="https://developer.android.com/studio/intro/update#sdk-manager">Android SDK build-tools</a> <strong>34.0.0</strong>. Linux and macOS are supported. Set <code>JAVA_HOME</code> and <code>ANDROID_HOME</code> to the JDK and SDK directories. Patching can use up to 4 GB of Java heap.</p>
+        <details><summary>Where do I set those paths?</summary><p>Set them in the terminal you use to build. Replace these example paths with your own installations:</p><pre><code>export JAVA_HOME="/path/to/jdk-21"
+export ANDROID_HOME="/path/to/android-sdk"</code></pre><p>In Android Studio, open <strong>Tools → SDK Manager</strong> to find the SDK location. Under <strong>SDK Tools</strong>, enable <strong>Show Package Details</strong> and select build-tools 34.0.0.</p></details>
+        <h3>Check your tools</h3>
+        <pre data-copy-label="Copy tool-check commands"><code>git clone https://github.com/sal0-h/feurtube.git
 cd feurtube
+./feurtube doctor
 ./feurtube bootstrap
 ./feurtube test</code></pre>
-        <p>Choose a strong keystore password. Enter it at the silent prompt, then generate your key and patch your APK:</p>
-        <pre><code>read -r -s FEURTUBE_KEYSTORE_PASSWORD
-export FEURTUBE_KEYSTORE_PASSWORD
-./feurtube keygen
-./feurtube patch /path/to/youtube-21.39.525.apk --experimental</code></pre>
-        <p>For 21.13.164, change the input path and omit <code>--experimental</code>. The output is <code>dist/feurtube.apk</code>, with a JSON build receipt beside it. Patch logs remain under <code>build/patch-*</code>. Existing output files are not overwritten.</p>
+        <p><code>doctor</code> checks Python, JDK 21 and the SDK tools without downloading or changing anything. Fix any reported problem before continuing.</p>
+        <h3>Sign and patch</h3>
+        <p>Generate your signing key once. The command asks for a password privately and confirms it before creating the key:</p>
+        <pre data-copy-label="Copy key-generation command"><code>./feurtube keygen</code></pre>
+        <p>Patch your supported APK, entering the same password when asked:</p>
+        <pre data-copy-label="Copy patch command"><code>./feurtube patch /path/to/youtube-21.39.525.apk --experimental</code></pre>
+        <p>For 21.13.164, change the input path and omit <code>--experimental</code>. Noninteractive builds can supply <code>FEURTUBE_KEYSTORE_PASSWORD</code> through their environment.</p>
+        <p>The output is <code>dist/feurtube.apk</code>, with a JSON build receipt beside it. Both are written after the signed APK passes verification; existing files are not overwritten. Patch logs remain under <code>build/patch-*</code>.</p>
         <p>The tests exercise the extension DEX and Morphe loader. They do not establish Android or playback compatibility. Downloads are pinned in <a href="https://github.com/sal0-h/feurtube/blob/main/upstream.lock.json">upstream.lock.json</a>; those upstream binaries are not rebuilt from source.</p>
       </section>
 
@@ -71,6 +86,18 @@ export FEURTUBE_KEYSTORE_PASSWORD
         <p>The package is <code>app.feurtube.android</code>, so you can keep stock YouTube installed. Shorts hiding is enabled on a fresh install. Its settings are under <strong>FeurTube</strong> in the app’s settings. Stream spoofing defaults to off.</p>
       </section>
 
+      <section id="settings">
+        <h2>Find the settings</h2>
+        <p>From YouTube’s <strong>Settings</strong> page, select <strong>FeurTube</strong>. Shorts hiding is already on for a fresh install. The controls are here:</p>
+        <ul>
+          <li><strong>Shorts → Shorts player → Enable hiding Shorts shelves</strong> controls feed shelves. Individual shelf filters are listed below it.</li>
+          <li><strong>General → Navigation bar → Hide Shorts button</strong> controls the bottom tab.</li>
+          <li><strong>Shorts → Shorts player → Shared Shorts</strong> describes the regular-player link behavior.</li>
+        </ul>
+        <p>Menu wording can vary by language. Existing saved settings take precedence over defaults when you update.</p>
+      </section>
+
+
       <section id="links">
         <h2>Open YouTube links</h2>
         <p>In Android settings, open <strong>Apps → FeurTube → Set as default</strong> (sometimes called <strong>Open by default</strong>). Enable <strong>Open supported links</strong> for <code>youtube.com</code>, <code>www.youtube.com</code>, <code>m.youtube.com</code> and <code>youtu.be</code>.</p>
@@ -79,21 +106,27 @@ export FEURTUBE_KEYSTORE_PASSWORD
 
       <section id="updates">
         <h2>Updates</h2>
-        <p>Back up <code>.cache/signing.p12</code> and its password privately. Every update must use the same key. Keep that directory when updating the source, then rerun the build with a supported APK and a new output path, for example <code>--output dist/feurtube-next.apk</code>.</p>
+        <p>Back up <code>.cache/signing.p12</code> and its password privately. Every update must use the same key. Keep that directory when updating the source, then rebuild with a supported APK and a new output path:</p>
+        <pre data-copy-label="Copy update commands"><code>git pull --ff-only
+./feurtube test
+./feurtube patch /path/to/youtube-21.39.525.apk --experimental --output dist/feurtube-next.apk</code></pre>
+        <p>Install the new APK over your existing FeurTube installation. Never regenerate the key to resolve an update error.</p>
         <p>Do not force a new YouTube version through the patcher or install the result of a failed patch. Check the <a href="https://github.com/sal0-h/feurtube">README</a> for version changes.</p>
       </section>
 
       <section id="trust">
         <h2>Trust and privacy</h2>
-        <p>You are trusting FeurTube, RVX, Morphe and GmsCore, as well as the original YouTube app. GmsCore runs beside Google Play Services and handles authentication and tokens for the modified app. Local builds help you inspect the patching process; they do not prove every dependency is safe.</p>
+        <p>You are trusting FeurTube, RVX, Morphe and GmsCore, as well as the original YouTube app. GmsCore runs beside Google Play Services and handles authentication and tokens for the modified app. Local builds help you inspect the patching process; they do not prove every dependency is safe. Report security vulnerabilities through <a href="https://github.com/sal0-h/feurtube/security/advisories/new">GitHub’s private reporting form</a>.</p>
         <p>FeurTube adds no analytics service or project login. YouTube and its dependencies still communicate with Google. This website uses no analytics, cookies or third-party fonts; hosting requests are handled by GitHub Pages.</p>
       </section>
 
       <section id="help">
         <h2>Troubleshooting</h2>
+        <details><summary>JDK 21 or SDK tools are missing</summary><p>Run <code>./feurtube doctor</code>. Set <code>JAVA_HOME</code> to a full JDK 21, not a JRE. Install SDK build-tools 34.0.0 even if a newer version is already installed, and point <code>ANDROID_HOME</code> at the SDK root.</p></details>
         <details><summary>The build rejects my APK</summary><p>Check its exact version and that it is a standalone APK. Do not edit the compatibility check. A checksum error for a downloaded tool needs investigation before replacing the pinned hash.</p></details>
         <details><summary>Android refuses an update</summary><p>Check that you used the same signing key. A differently signed APK cannot update the existing installation. Do not remove an app or clear its data just to make a test pass.</p></details>
-        <details><summary>Shorts are still visible or playback fails</summary><p>Check the FeurTube settings and report the exact surface, YouTube version and Android version in a <a href="https://github.com/sal0-h/feurtube/issues">GitHub issue</a>. The initial device test does not cover every playback mode or entry point. Do not include account details, tokens, raw phone logs or authentication screenshots.</p></details>
+        <details><summary>Shorts are still visible or playback fails</summary><p>Check the <a href="#settings">FeurTube settings</a> and report the exact surface, YouTube version and Android version using the <a href="https://github.com/sal0-h/feurtube/issues/new?template=app_bug.yml">app bug form</a>. The initial device test does not cover every playback mode or entry point.</p></details>
+        <details><summary>I need help building or installing</summary><p>Use the <a href="https://github.com/sal0-h/feurtube/issues/new?template=build.yml">build and installation form</a>. Include the command that failed, your computer’s OS and the error message. Keep APKs, signing keys, account details, tokens, raw phone logs and authentication screenshots private.</p></details>
       </section>
     </article>
   </main>
