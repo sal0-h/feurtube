@@ -1,0 +1,38 @@
+name: Upstream releases
+
+on:
+  schedule:
+    - cron: '23 14 * * 1'
+  workflow_dispatch:
+    inputs:
+      notify:
+        description: Create or update the upstream review issue
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: upstream-releases
+  cancel-in-progress: false
+
+jobs:
+  check:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Review upstream publications
+        env:
+          GH_TOKEN: ${{ github.token }}
+          NOTIFY: ${{ github.event_name == 'schedule' || inputs.notify }}
+        run: |
+          if [ "$NOTIFY" = true ]; then
+            python3 .github/scripts/upstream.py --notify
+          else
+            python3 .github/scripts/upstream.py
+          fi

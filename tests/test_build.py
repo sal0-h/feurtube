@@ -123,6 +123,69 @@ class BuildTests(unittest.TestCase):
             ft.configure_resources(entries)
 
 
+class KeystoreTests(unittest.TestCase):
+    def test_keygen_creates_private_key_and_directory(self):
+        with tempfile.TemporaryDirectory() as directory:
+            key = Path(directory) / "private/key.p12"
+            with patch.dict(os.environ, {"FEURTUBE_KEYSTORE_PASSWORD": "test-only-password"}):
+                ft.keygen(SimpleNamespace(keystore=key))
+            self.assertTrue(key.is_file())
+            self.assertEqual(key.stat().st_mode & 0o777, 0o600)
+            self.assertEqual(key.parent.stat().st_mode & 0o777, 0o700)
+            original = ft.digest(key)
+            with self.assertRaisesRegex(ValueError, "Refusing to replace"):
+                ft.keygen(SimpleNamespace(keystore=key))
+            self.assertEqual(ft.digest(key), original)
+
+    def test_new_key_uses_platform_data_directory(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            with (patch.object(ft.Path, "home", return_value=root),
+                  patch.object(ft, "CACHE", root / "cache"),
+                  patch.dict(os.environ, {"XDG_DATA_HOME": "relative-path"})):
+                for platform, expected in (("linux", ".local/share"), ("darwin", "Library/Application Support")):
+                    with patch.object(ft.sys, "platform", platform):
+                        self.assertEqual(ft.default_keystore(), root / expected / "feurtube/signing.p12")
+
+    def test_legacy_key_is_used_until_identical_copy_exists(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            cache, data = root / "cache", root / "data"
+            cache.mkdir()
+            legacy = cache / "signing.p12"
+            legacy.write_bytes(b"existing test key")
+            key = data / "feurtube/signing.p12"
+            with (patch.object(ft, "CACHE", cache), patch.object(ft.sys, "platform", "linux"),
+                  patch.dict(os.environ, {"XDG_DATA_HOME": str(data)})):
+                self.assertEqual(ft.default_keystore(), legacy)
+                key.parent.mkdir(parents=True)
+                key.write_bytes(legacy.read_bytes())
+                self.assertEqual(ft.default_keystore(), key)
+                key.write_bytes(b"different test key")
+                with self.assertRaisesRegex(ValueError, "select one with --keystore"):
+                    ft.default_keystore()
+                self.assertEqual(legacy.read_bytes(), b"existing test key")
+
+    def test_explicit_key_bypasses_default_selection(self):
+        with (patch.object(ft.sys, "argv", ["feurtube", "keygen", "--keystore", "/tmp/test-key.p12"]),
+              patch.object(ft, "default_keystore") as default,
+              patch.object(ft, "keygen") as keygen):
+            self.assertEqual(ft.main(), 0)
+            default.assert_not_called()
+            self.assertEqual(keygen.call_args.args[0].keystore, Path("/tmp/test-key.p12"))
+
+    def test_keygen_does_not_follow_a_broken_key_symlink(self):
+        with tempfile.TemporaryDirectory() as directory:
+            key = Path(directory) / "key.p12"
+            target = Path(directory) / "missing.p12"
+            key.symlink_to(target)
+            with patch.object(ft, "ensure_password") as password:
+                with self.assertRaisesRegex(ValueError, "Refusing to replace"):
+                    ft.keygen(SimpleNamespace(keystore=key))
+                password.assert_not_called()
+            self.assertFalse(target.exists())
+
+
 class OutputTests(unittest.TestCase):
     def test_receipt_cannot_replace_the_apk_or_keystore(self):
         with tempfile.TemporaryDirectory() as directory:

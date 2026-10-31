@@ -67,7 +67,7 @@ cd feurtube
 ./feurtube test</code></pre>
         <p><code>doctor</code> checks Python, JDK 21 and the SDK tools without downloading or changing anything. Fix any reported problem before continuing.</p>
         <h3>Sign and patch</h3>
-        <p>Generate your signing key once. The command asks for a password privately and confirms it before creating the key:</p>
+        <p>Generate your signing key once. The command asks for a password privately, confirms it, and prints the key’s location. On Linux, new keys are stored in <code>~/.local/share/feurtube/signing.p12</code> (or under <code>XDG_DATA_HOME</code>); on macOS, in <code>~/Library/Application Support/feurtube/signing.p12</code>. Back up the key and its password privately.</p>
         <pre data-copy-label="Copy key-generation command"><code>./feurtube keygen</code></pre>
         <p>Patch your supported APK, entering the same password when asked:</p>
         <pre data-copy-label="Copy patch command"><code>./feurtube patch /path/to/youtube-21.39.525.apk --experimental</code></pre>
@@ -106,7 +106,7 @@ cd feurtube
 
       <section id="updates">
         <h2>Updates</h2>
-        <p>Back up <code>.cache/signing.p12</code> and its password privately. Every update must use the same key. Keep that directory when updating the source, then rebuild with a supported APK and a new output path:</p>
+        <p>Every update must use the same signing key. Older builds stored it at <code>.cache/signing.p12</code>; that key is still recognized. Back it up before cleaning the cache or replacing your checkout. To select a key in another location, pass <code>--keystore /path/to/key.p12</code>. Rebuild with a supported APK and a new output path:</p>
         <pre data-copy-label="Copy update commands"><code>git pull --ff-only
 ./feurtube test
 ./feurtube patch /path/to/youtube-21.39.525.apk --experimental --output dist/feurtube-next.apk</code></pre>

@@ -88,6 +88,22 @@ def ensure_password(confirm=False):
     os.environ["FEURTUBE_KEYSTORE_PASSWORD"] = value
 
 
+def default_keystore():
+    if sys.platform == "darwin":
+        data = Path.home() / "Library/Application Support"
+    else:
+        data = Path(os.environ.get("XDG_DATA_HOME", ""))
+        if not data.is_absolute():
+            data = Path.home() / ".local/share"
+    key = data / "feurtube/signing.p12"
+    legacy = CACHE / "signing.p12"
+    if legacy.exists():
+        if key.exists() and digest(key) != digest(legacy):
+            raise ValueError("Different signing keys found in the data directory and .cache; select one with --keystore")
+        return key if key.exists() else legacy
+    return key
+
+
 def bootstrap():
     CACHE.mkdir(exist_ok=True)
     paths = []
@@ -321,13 +337,13 @@ def patch(args):
 
 
 def keygen(args):
-    key = args.keystore.resolve()
-    if key.exists():
+    key = args.keystore.expanduser().absolute()
+    if key.exists() or key.is_symlink():
         raise ValueError(f"Refusing to replace signing key: {key}")
     ensure_password(confirm=True)
-    key.parent.mkdir(parents=True, exist_ok=True)
     old_umask = os.umask(0o077)
     try:
+        key.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
         run([java_tool("keytool"), "-genkeypair", "-storetype", "PKCS12", "-keystore", key,
              "-alias", "feurtube", "-keyalg", "RSA", "-keysize", "3072", "-validity", "10000",
              "-dname", "CN=FeurTube local build", "-storepass:env", "FEURTUBE_KEYSTORE_PASSWORD"])
@@ -343,7 +359,8 @@ def main():
         sub.add_parser(name)
     for name in ("keygen", "patch"):
         command = sub.add_parser(name)
-        command.add_argument("--keystore", type=Path, default=CACHE / "signing.p12")
+        command.add_argument("--keystore", type=Path,
+                             help="PKCS12 key; defaults to the user data directory, or an existing .cache key")
         if name == "patch":
             command.add_argument("apk", type=Path)
             command.add_argument("--output", type=Path, default=ROOT / "dist/feurtube.apk")
@@ -352,6 +369,8 @@ def main():
     try:
         if sys.version_info < (3, 11):
             raise ValueError("Python 3.11 or newer is required")
+        if args.command in ("keygen", "patch") and args.keystore is None:
+            args.keystore = default_keystore()
         if args.command in ("build", "test", "patch"):
             check_environment()
         {"doctor": doctor, "bootstrap": bootstrap, "build": build, "test": test,

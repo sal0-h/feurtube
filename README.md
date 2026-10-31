@@ -27,7 +27,7 @@ Supply a standalone, Google-signed YouTube APK: **21.13.164** (Android 9+) or **
 
 Output: `dist/feurtube.apk`, package `app.feurtube.android`. Logs and patch reports go under `build/patch-*`; a build receipt is written beside the verified APK. Use `--output` with a new `.apk` path for another destination. Neither the APK nor an existing receipt is overwritten.
 
-Back up `.cache/signing.p12` and its password privately. Updates need the same key. To use another key with alias `feurtube`, pass `--keystore /path/to/key.p12`.
+New signing keys go in your user data directory: `~/.local/share/feurtube/signing.p12` on Linux (`XDG_DATA_HOME` is respected), or `~/Library/Application Support/feurtube/signing.p12` on macOS. An existing `.cache/signing.p12` is still recognized. Back up the key and its password privately; updates need the same key. To select a key with alias `feurtube`, pass `--keystore /path/to/key.p12`.
 
 ## Install
 
@@ -46,3 +46,5 @@ GPL-3.0-only. Preserve [LICENSE](LICENSE), [NOTICE](NOTICE) and upstream credits
 The buildless site lives in `site/` and deploys to GitHub Pages on changes to `main`. Preview it with `python3 -m http.server --directory site 8000`.
 
 For bugs, use the [app or build issue forms](https://github.com/sal0-h/feurtube/issues/new/choose). Report vulnerabilities [privately](SECURITY.md). Keep pull requests focused and include validation results; distinguish host checks from actual Android testing.
+
+The weekly upstream workflow posts release changes for RVX, Morphe and GmsCore to one GitHub tracking issue. Subscribe there for notifications. Updates still require source review, host tests and Android testing, including fresh defaults, saved settings and Premium offline playback.
