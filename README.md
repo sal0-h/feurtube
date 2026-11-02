@@ -46,5 +46,3 @@ GPL-3.0-only. Preserve [LICENSE](LICENSE), [NOTICE](NOTICE) and upstream credits
 The buildless site lives in `site/` and deploys to GitHub Pages on changes to `main`. Preview it with `python3 -m http.server --directory site 8000`.
 
 For bugs, use the [app or build issue forms](https://github.com/sal0-h/feurtube/issues/new/choose). Report vulnerabilities [privately](SECURITY.md). Keep pull requests focused and include validation results; distinguish host checks from actual Android testing.
-
-The weekly upstream workflow posts release changes for RVX, Morphe and GmsCore to one GitHub tracking issue. Subscribe there for notifications. Updates still require source review, host tests and Android testing, including fresh defaults, saved settings and Premium offline playback.
